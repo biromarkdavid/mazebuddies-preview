@@ -235,6 +235,70 @@
   .revive-btn:active { transform: scale(0.97); }
   .ad-tag { font-size: 10px; font-weight: 800; letter-spacing: .08em; background: rgba(255,255,255,0.25);
     border-radius: 6px; padding: 2px 6px; }
+
+  /* --- settings sheets --- */
+  .settings-row.tappable { cursor: pointer; }
+  .settings-row.tappable:active { background: var(--accent-soft); border-radius: 10px; }
+  .sheet-overlay { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+    background: rgba(10,14,8,0.42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); padding: 24px; }
+  .sheet-overlay[hidden] { display: none; }
+  .sheet-card { width: 100%; max-width: 340px; background: var(--panel); border-radius: 24px; padding: 22px 20px 18px;
+    text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.3); animation: winPop 0.3s cubic-bezier(.2,1.3,.5,1); }
+  .sheet-card[hidden] { display: none; }
+  .sheet-title { font-size: 20px; font-weight: 800; color: var(--ink); margin-bottom: 6px; }
+  .sheet-sub { font-size: 13px; color: var(--sub); font-weight: 600; margin-bottom: 14px; line-height: 1.4; }
+  .sheet-fine { font-size: 11px; color: var(--sub); font-weight: 600; margin: 10px 0 4px; }
+  .sheet-btn { width: 100%; border: none; border-radius: 14px; padding: 13px 12px; margin-bottom: 8px;
+    background: var(--accent-soft); color: var(--ink); font-weight: 800; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .sheet-btn.primary { background: var(--accent); color: #fff; }
+  .sheet-btn.signin { background: #111; color: #fff; }
+  .sheet-btn .si-ic { width: 16px; height: 16px; border-radius: 50%; background: #fff; flex: none; }
+  .sheet-btn .si-ic.g { background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); }
+  .sheet-btn:active { transform: scale(0.97); }
+  .sheet-close { width: 100%; border: 1.5px solid var(--grid-line); background: transparent; border-radius: 14px;
+    padding: 12px; margin-top: 6px; font-weight: 800; font-size: 14px; color: var(--sub); cursor: pointer; }
+  .rate-stars { font-size: 30px; color: #ffc32b; letter-spacing: 3px; margin: 4px 0 8px; }
+  .lang-list { text-align: left; max-height: 46vh; overflow-y: auto; margin-bottom: 12px; }
+  .lang-list .lang { display: flex; justify-content: space-between; align-items: center; padding: 12px 4px;
+    border-bottom: 1px solid var(--grid-line); font-weight: 700; font-size: 15px; cursor: pointer; color: var(--ink); }
+  .lang-list .lang:last-child { border-bottom: none; }
+  .lang-list .lang.sel { color: var(--accent); }
+  .lang-list .lang .chk { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff;
+    display: none; align-items: center; justify-content: center; font-size: 13px; }
+  .lang-list .lang.sel .chk { display: flex; }
+  .ra-list { text-align: left; list-style: none; padding: 0; margin: 0 0 14px; }
+  .ra-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .ra-list li [data-ico] { color: var(--accent); flex: none; margin-top: 1px; }
+
+  /* --- collection --- */
+  .record-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 6px; }
+  .record-card { background: var(--panel); border-radius: 16px; padding: 14px 6px 12px; text-align: center; }
+  .record-card .r-ico { font-size: 30px; margin-bottom: 4px; }
+  .record-card .r-ico .ico { width: 30px; height: 30px; }
+  .record-card .r-num { font-size: 22px; font-weight: 800; color: var(--ink); }
+  .record-card .r-lbl { font-size: 10px; font-weight: 700; color: var(--sub); margin-top: 2px; }
+  .award-grid, .trophy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .award-cell { background: var(--panel); border-radius: 16px; padding: 14px 6px 10px; text-align: center; cursor: pointer; }
+  .award-cell .a-ico { width: 46px; height: 46px; margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; }
+  .award-cell .a-ico .ico { width: 40px; height: 40px; }
+  .award-cell.locked { opacity: 0.45; }
+  .award-cell .a-nm { font-size: 10px; font-weight: 800; color: var(--ink); }
+  .award-cell .a-sub { font-size: 9px; font-weight: 700; color: var(--sub); margin-top: 1px; }
+  .award-cell .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--wrong); display: inline-block; margin-left: 3px; vertical-align: 1px; }
+  .trophy-year { font-weight: 800; color: var(--accent); font-size: 14px; margin: 6px 0 8px; }
+  .trophy-cell { background: var(--panel); border-radius: 14px; padding: 12px 4px 8px; text-align: center; }
+  .trophy-cell .t-ico { width: 40px; height: 40px; margin: 0 auto 2px; }
+  .trophy-cell .t-ico .ico { width: 34px; height: 34px; }
+  .trophy-cell.locked { opacity: 0.4; }
+  .trophy-cell .t-mo { font-size: 10px; font-weight: 800; color: var(--ink); }
+  .trophy-cell .t-pr { font-size: 9px; font-weight: 700; color: var(--sub); }
+  .award-card .award-big { font-size: 64px; line-height: 1; margin-bottom: 6px; }
+  .award-card .award-big .ico { width: 64px; height: 64px; }
+  .award-bar { position: relative; height: 20px; border-radius: 10px; background: var(--grid-line); margin: 12px 0 4px; overflow: hidden; }
+  .award-bar-fill { position: absolute; inset: 0; width: 0; background: var(--right); border-radius: 10px; transition: width .4s; }
+  .award-bar span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: var(--ink); }
 </style>
 </head>
 <body>
@@ -278,22 +342,21 @@
   <section class="screen" id="screen-collection">
     <div class="screen-title">Collection</div>
     <div class="section-title">Records</div>
-    <div class="stat-row">
-      <div class="stat-card"><div class="num" id="statStreak">0</div><div class="lbl">Longest streak</div></div>
-      <div class="stat-card"><div class="num" id="statWinStreak">0</div><div class="lbl">Best win streak</div></div>
-      <div class="stat-card"><div class="num" id="statWins">0</div><div class="lbl">Total wins</div></div>
-    </div>
+    <div class="record-row" id="recordRow"></div>
     <div class="section-title">Awards</div>
-    <div class="badge-row" id="badgeRow"></div>
+    <div class="award-grid" id="awardGrid"></div>
+    <div class="section-title">Challenge Trophies</div>
+    <div class="trophy-year" id="trophyYear"></div>
+    <div class="trophy-grid" id="trophyGrid"></div>
   </section>
 
   <!-- SETTINGS -->
   <section class="screen" id="screen-settings">
     <div class="screen-title">Settings</div>
     <div class="settings-group">
-      <div class="settings-row">
+      <div class="settings-row tappable" data-modal="language">
         <div class="left"><span class="icon" data-ico="globe"></span>Language</div>
-        <div class="val">English &rsaquo;</div>
+        <div class="val" id="langVal">English &rsaquo;</div>
       </div>
       <div class="settings-row">
         <div class="left"><span class="icon" data-ico="vib"></span>Vibrations</div>
@@ -309,16 +372,22 @@
       </div>
     </div>
     <div class="settings-group">
-      <div class="settings-row"><div class="left"><span class="icon" data-ico="ban"></span>Remove Ads</div><div class="val">soon</div></div>
-      <div class="settings-row"><div class="left"><span class="icon" data-ico="retry"></span>Restore purchases</div></div>
+      <div class="settings-row tappable" data-modal="account">
+        <div class="left"><span class="icon" data-ico="person"></span>Account Connection</div>
+        <div class="val" id="accountVal">Off &rsaquo;</div>
+      </div>
     </div>
     <div class="settings-group">
-      <div class="settings-row"><div class="left"><span class="icon" data-ico="star"></span>Rate us</div></div>
-      <div class="settings-row"><div class="left"><span class="icon" data-ico="pencil"></span>Write us</div></div>
+      <div class="settings-row tappable" data-modal="removeads"><div class="left"><span class="icon" data-ico="ban"></span>Remove Ads</div><div class="val">&rsaquo;</div></div>
+      <div class="settings-row tappable" id="restoreRow"><div class="left"><span class="icon" data-ico="retry"></span>Restore purchases</div></div>
     </div>
     <div class="settings-group">
-      <div class="settings-row"><div class="left"><span class="icon" data-ico="doc"></span>Privacy</div></div>
-      <div class="settings-row"><div class="left"><span class="icon" data-ico="info"></span>Terms of Service</div></div>
+      <div class="settings-row tappable" data-modal="rate"><div class="left"><span class="icon" data-ico="star"></span>Rate us</div></div>
+      <div class="settings-row tappable" id="writeRow"><div class="left"><span class="icon" data-ico="pencil"></span>Write us</div></div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-row tappable" id="privacyRow"><div class="left"><span class="icon" data-ico="doc"></span>Privacy</div></div>
+      <div class="settings-row tappable" id="termsRow"><div class="left"><span class="icon" data-ico="info"></span>Terms of Service</div></div>
     </div>
   </section>
 
@@ -359,6 +428,51 @@
     </div>
   </div>
 
+  <!-- settings sheets -->
+  <div class="sheet-overlay" id="sheetOverlay" hidden>
+    <div class="sheet-card" data-sheet="language" hidden>
+      <div class="sheet-title">Language</div>
+      <div class="lang-list" id="langList"></div>
+      <button class="sheet-close" data-close>Close</button>
+    </div>
+    <div class="sheet-card" data-sheet="rate" hidden>
+      <div class="sheet-title">Enjoying Maze Buddies?</div>
+      <div class="rate-stars">★★★★★</div>
+      <div class="sheet-sub">Take a moment to rate the game! Thank you for your support.</div>
+      <button class="sheet-btn" id="rateLow">1-4 Stars</button>
+      <button class="sheet-btn primary" id="rateHigh">5 Stars</button>
+      <button class="sheet-close" data-close>Close</button>
+    </div>
+    <div class="sheet-card" data-sheet="account" hidden>
+      <div class="sheet-title">Connect Account</div>
+      <div class="sheet-sub">Sign in to save your level progress!</div>
+      <button class="sheet-btn signin" id="signApple"><span class="si-ic"></span>Sign in with Apple</button>
+      <button class="sheet-btn signin" id="signGoogle"><span class="si-ic g"></span>Sign in with Google</button>
+      <div class="sheet-fine">By signing up you agree to our <b>Terms of Service</b></div>
+      <button class="sheet-close" data-close>Close</button>
+    </div>
+    <div class="sheet-card" data-sheet="removeads" hidden>
+      <div class="sheet-title">Remove Ads</div>
+      <ul class="ra-list">
+        <li><span data-ico="info"></span>No forced ads between levels</li>
+        <li><span data-ico="info"></span>Hint and life-refill ads stay available</li>
+      </ul>
+      <button class="sheet-btn primary" id="raBuy">4 490 HUF</button>
+      <button class="sheet-close" data-close>Close</button>
+    </div>
+  </div>
+
+  <!-- award detail -->
+  <div class="win-overlay" id="awardOverlay" hidden>
+    <div class="win-card award-card">
+      <div class="award-big" id="awardBig"></div>
+      <div class="win-title" id="awardTitle">Award</div>
+      <div class="win-sub" id="awardDesc"></div>
+      <div class="award-bar" id="awardBarWrap" hidden><div class="award-bar-fill" id="awardBarFill"></div><span id="awardBarTxt"></span></div>
+      <button class="big-next" data-close-award><span class="wi" data-ico="next"></span>Nice!</button>
+    </div>
+  </div>
+
 </div>
 
 <script src="buddies-data.js"></script>
@@ -390,6 +504,12 @@ const ICO = {
   gem: '<path d="M6 3h12l3.5 5.5L12 22 2.5 8.5z"/>',
   paw: '<path d="M7 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm10 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4zM9.5 6.5A2 2 0 1 1 6 6a2 2 0 0 1 3.5.5zm8.5 0A2 2 0 1 1 14.5 6 2 2 0 0 1 18 6.5zM12 12c3 0 5 2.5 5 4.5S15 20 12 20s-5-1.5-5-3.5S9 12 12 12z"/>',
   crown: '<path d="M3 8l4 4 5-7 5 7 4-4v11H3z"/>',
+  person: '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0z"/>',
+  cup: '<path d="M7 4h10v3a5 5 0 0 1-4 4.9V15h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-3.1A5 5 0 0 1 7 7zM4 5h1.2v1.6A2 2 0 0 1 4 5zm14.8 0H20a2 2 0 0 1-1.2 1.6zM8 18h8v2H8z"/>',
+  check: '<path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5 10 17 19 7"/>',
+  target: '<path fill="none" stroke="currentColor" stroke-width="2" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/><circle cx="12" cy="12" r="2" fill="currentColor"/>',
+  skull: '<path d="M12 3a8 8 0 0 0-5 14v3h10v-3a8 8 0 0 0-5-14zm-3 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>',
+  shield: '<path d="M12 2 20 5v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/>',
 };
 function ico(name, twoTone) {
   const p = ICO[name] || '';
@@ -827,11 +947,7 @@ function generateLevel(levelIndex) {
 // ---- persistence ----
 const STORE_KEY = 'mazebuddies_save_v1';
 function loadSave() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {}
-  return {
+  const dflt = {
     level: 0,          // 0-based index of level to play next
     totalWins: 0,
     currentWinStreak: 0,
@@ -840,10 +956,20 @@ function loadSave() {
     dayStreak: 0,
     lastPlayedDate: null,
     badges: {},
+    monthWins: {},      // "YYYY-M" -> levels won that month
+    lang: 'English',
+    account: false,
+    noAds: false,
+    rated: false,
     darkMode: false,
     vibration: true,
     sound: true,
   };
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return Object.assign(dflt, JSON.parse(raw));
+  } catch (e) {}
+  return dflt;
 }
 function persist() { try { localStorage.setItem(STORE_KEY, JSON.stringify(save)); } catch (e) {} }
 
@@ -867,17 +993,19 @@ function updateDayStreak() {
   persist();
 }
 
-// ---- badges ----
+// ---- awards ----
+// prog(s) -> [current, target]; unlocked when current >= target
 const BADGE_DEFS = [
-  { id: 'trailblazer', em: 'medal',  name: 'Trailblazer', check: s => s.level >= 10 },
-  { id: 'legend',      em: 'trophy', name: 'Maze Legend', check: s => s.level >= 20 },
-  { id: 'unstoppable', em: 'flame',  name: 'Unstoppable', check: s => s.bestWinStreak >= 5 },
-  { id: 'perfect',     em: 'gem',    name: 'Perfect Run', check: s => s.perfectRuns >= 5 },
-  { id: 'collector',   em: 'paw',    name: 'Buddy Collector', check: s => s.level >= 50 },
-  { id: 'master',      em: 'crown',  name: 'Maze Master', check: s => s.level >= 50 },
+  { id: 'legend',      icon: 'star',   name: 'Level Legend',    desc: 'Reach Level 25.',                    prog: s => [Math.min(s.level, 25), 25] },
+  { id: 'perfect',     icon: 'target', name: 'Perfect Play',    desc: 'Clear 10 levels on the first try.',   prog: s => [Math.min(s.perfectRuns, 10), 10] },
+  { id: 'unstoppable', icon: 'flame',  name: 'Unstoppable',     desc: 'Win 5 levels in a row.',              prog: s => [Math.min(s.bestWinStreak, 5), 5] },
+  { id: 'streaker',    icon: 'crown',  name: 'Streak Keeper',   desc: 'Keep a 7 day streak going.',          prog: s => [Math.min(s.dayStreak, 7), 7] },
+  { id: 'collector',   icon: 'paw',    name: 'Buddy Collector', desc: 'Reach Level 50.',                     prog: s => [Math.min(s.level, 50), 50] },
+  { id: 'century',     icon: 'shield', name: 'Century Club',    desc: 'Win 100 levels in total.',            prog: s => [Math.min(s.totalWins, 100), 100] },
 ];
+function badgeUnlocked(b) { const [c, t] = b.prog(save); return c >= t; }
 function refreshBadges() {
-  for (const b of BADGE_DEFS) if (b.check(save)) save.badges[b.id] = true;
+  for (const b of BADGE_DEFS) if (badgeUnlocked(b)) save.badges[b.id] = true;
 }
 
 // ---- state ----
@@ -1345,6 +1473,9 @@ async function win() {
   save.bestWinStreak = Math.max(save.bestWinStreak, save.currentWinStreak);
   if (!lostAnyHeart) save.perfectRuns++;
   save.level = Math.max(save.level, currentLevel + 1);
+  const nd = new Date(); const mk = nd.getFullYear() + '-' + nd.getMonth();
+  save.monthWins = save.monthWins || {};
+  save.monthWins[mk] = (save.monthWins[mk] || 0) + 1;
   refreshBadges();
   updateDayStreak();
   persist();
@@ -1505,27 +1636,123 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   });
 });
 
+const MB = window.MB_BUDDIES || [{ name: 'rusty' }];
+function featuredBuddy() { return MB[save.level % MB.length]; }
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
 function renderHome() {
   streakNum.textContent = save.dayStreak || 0;
   homeLevel.textContent = save.level + 1;
-  const b = buddyFor(save.level);
-  buddyAvatar.textContent = b.emoji;
-  buddyNameEl.textContent = b.name;
+  const b = featuredBuddy();
+  buddyAvatar.innerHTML = `<img src="design/characters/buddies/${b.name}.png" alt="">`;
+  buddyNameEl.textContent = cap(b.name);
 }
 
 function renderCollection() {
-  document.getElementById('statStreak').textContent = save.dayStreak || 0;
-  document.getElementById('statWinStreak').textContent = save.bestWinStreak || 0;
-  document.getElementById('statWins').textContent = save.totalWins || 0;
-  const row = document.getElementById('badgeRow');
-  row.innerHTML = '';
-  for (const b of BADGE_DEFS) {
-    const unlocked = !!save.badges[b.id];
-    const div = document.createElement('div');
-    div.className = 'badge-card' + (unlocked ? ' unlocked' : '');
-    div.innerHTML = `<div class="em">${ico(b.em)}</div><div class="nm">${b.name}</div>`;
-    row.appendChild(div);
+  // records
+  const recs = [
+    { icon: 'flame',  num: save.dayStreak || 0,     lbl: 'Longest streak' },
+    { icon: 'crown',  num: save.bestWinStreak || 0, lbl: 'Best win streak' },
+    { icon: 'medal',  num: save.totalWins || 0,     lbl: 'Total wins' },
+  ];
+  document.getElementById('recordRow').innerHTML = recs.map(r =>
+    `<div class="record-card"><div class="r-ico">${ico(r.icon)}</div><div class="r-num">${r.num}</div><div class="r-lbl">${r.lbl}</div></div>`
+  ).join('');
+
+  // awards
+  document.getElementById('awardGrid').innerHTML = BADGE_DEFS.map(b => {
+    const [c, t] = b.prog(save);
+    const done = c >= t;
+    const dot = (!done && c > 0) ? '<span class="dot"></span>' : '';
+    return `<div class="award-cell ${done ? '' : 'locked'}" data-award="${b.id}">
+      <div class="a-ico">${ico(b.icon)}</div>
+      <div class="a-nm">${b.name}${dot}</div>
+      <div class="a-sub">${done ? 'Earned' : c + ' / ' + t}</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('#awardGrid .award-cell').forEach(el =>
+    el.addEventListener('click', () => openAward(el.dataset.award)));
+
+  // challenge trophies - one cup per month of the current year, "levels won this month"
+  const now = new Date();
+  document.getElementById('trophyYear').textContent = now.getFullYear();
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const daysIn = (m) => new Date(now.getFullYear(), m + 1, 0).getDate();
+  const monthWins = save.monthWins || {};
+  document.getElementById('trophyGrid').innerHTML = months.map((mn, i) => {
+    const key = now.getFullYear() + '-' + i;
+    const won = monthWins[key] || 0;
+    const goal = daysIn(i);
+    const done = won >= goal;
+    const future = i > now.getMonth();
+    return `<div class="trophy-cell ${done ? '' : 'locked'}">
+      <div class="t-ico">${ico('cup')}</div>
+      <div class="t-mo">${mn}</div>
+      <div class="t-pr">${future ? '-' : won + ' of ' + goal}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---- award detail modal ----
+const awardOverlay = document.getElementById('awardOverlay');
+function openAward(id) {
+  const b = BADGE_DEFS.find(x => x.id === id);
+  if (!b) return;
+  const [c, t] = b.prog(save);
+  const done = c >= t;
+  document.getElementById('awardBig').innerHTML = ico(b.icon);
+  document.getElementById('awardTitle').textContent = b.name;
+  document.getElementById('awardDesc').textContent = done ? b.desc + ' Earned!' : b.desc;
+  const wrap = document.getElementById('awardBarWrap');
+  if (done) { wrap.hidden = true; }
+  else {
+    wrap.hidden = false;
+    document.getElementById('awardBarFill').style.width = Math.round(100 * c / t) + '%';
+    document.getElementById('awardBarTxt').textContent = c + ' / ' + t;
   }
+  awardOverlay.hidden = false;
+}
+awardOverlay.addEventListener('click', (e) => {
+  if (e.target === awardOverlay || e.target.closest('[data-close-award]')) awardOverlay.hidden = true;
+});
+
+// ---- settings sheets ----
+const LANGUAGES = ['English', 'Deutsch', 'francais', 'italiano', 'espanol', 'portugues (Brasil)', 'Turkce', 'polski', 'русский', 'Nederlands'];
+const sheetOverlay = document.getElementById('sheetOverlay');
+function openSheet(name) {
+  sheetOverlay.querySelectorAll('.sheet-card').forEach(c => { c.hidden = c.dataset.sheet !== name; });
+  if (name === 'language') renderLangList();
+  sheetOverlay.hidden = false;
+}
+function closeSheet() { sheetOverlay.hidden = true; }
+function renderLangList() {
+  const cur = save.lang || 'English';
+  document.getElementById('langList').innerHTML = LANGUAGES.map(l =>
+    `<div class="lang ${l === cur ? 'sel' : ''}" data-lang="${l}">${l}<span class="chk">${ico('check')}</span></div>`
+  ).join('');
+  document.querySelectorAll('#langList .lang').forEach(el => el.addEventListener('click', () => {
+    save.lang = el.dataset.lang; persist();
+    document.getElementById('langVal').innerHTML = save.lang + ' ›';
+    renderLangList();
+  }));
+}
+sheetOverlay.addEventListener('click', (e) => {
+  if (e.target === sheetOverlay || e.target.closest('[data-close]')) closeSheet();
+});
+document.querySelectorAll('.settings-row[data-modal]').forEach(row =>
+  row.addEventListener('click', () => openSheet(row.dataset.modal)));
+document.getElementById('rateHigh').addEventListener('click', () => { save.rated = true; persist(); closeSheet(); });
+document.getElementById('rateLow').addEventListener('click', closeSheet);
+document.getElementById('signApple').addEventListener('click', () => { setAccount(true); closeSheet(); });
+document.getElementById('signGoogle').addEventListener('click', () => { setAccount(true); closeSheet(); });
+document.getElementById('raBuy').addEventListener('click', () => { save.noAds = true; persist(); closeSheet(); });
+['restoreRow', 'writeRow', 'privacyRow', 'termsRow'].forEach(id => {
+  const el = document.getElementById(id); if (el) el.addEventListener('click', () => {});
+});
+function setAccount(on) {
+  save.account = on; persist();
+  const v = document.getElementById('accountVal');
+  if (v) v.innerHTML = (on ? 'On' : 'Off') + ' ›';
 }
 
 // ---- settings ----
@@ -1548,6 +1775,8 @@ if (save.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
 
 // ---- boot ----
 paintIcons();
+document.getElementById('langVal').innerHTML = (save.lang || 'English') + ' ›';
+setAccount(!!save.account);
 renderHome();
 </script>
 </body>

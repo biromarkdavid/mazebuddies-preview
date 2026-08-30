@@ -158,6 +158,43 @@
   .nav-btn .ic { font-size: 20px; }
   .nav-btn.active { color: var(--accent); background: var(--accent-soft); }
   .nav-btn:disabled { opacity: 0.35; }
+
+  /* --- win celebration --- */
+  #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; }
+  .win-overlay[hidden] { display: none; }
+  .win-overlay { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+    background: rgba(10,12,30,0.42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    padding: 24px; animation: winFade 0.2s ease; }
+  @keyframes winFade { from { opacity: 0; } to { opacity: 1; } }
+  .win-card { width: 100%; max-width: 340px; background: var(--panel); border-radius: 26px;
+    padding: 26px 22px 22px; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+    animation: winPop 0.35s cubic-bezier(.2,1.3,.5,1); }
+  @keyframes winPop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .win-title { font-size: 26px; font-weight: 800; color: var(--ink); }
+  .win-stars { font-size: 40px; letter-spacing: 4px; margin: 8px 0 2px; line-height: 1; }
+  .win-stars .s { color: var(--grid-line); display: inline-block; }
+  .win-stars .s.on { color: #ffc32b; animation: starPop 0.4s backwards; }
+  .win-stars .s.on:nth-child(1) { animation-delay: 0.15s; }
+  .win-stars .s.on:nth-child(2) { animation-delay: 0.28s; }
+  .win-stars .s.on:nth-child(3) { animation-delay: 0.41s; }
+  @keyframes starPop { from { transform: scale(0) rotate(-40deg); } to { transform: scale(1) rotate(0); } }
+  .win-sub { color: var(--sub); font-weight: 700; font-size: 13px; margin-bottom: 14px; }
+  .win-streak { background: var(--accent-soft); border-radius: 16px; padding: 12px 10px; margin-bottom: 16px; }
+  .win-streak .flame { font-size: 22px; }
+  .win-streak .stxt { font-weight: 800; color: var(--ink); font-size: 14px; margin-left: 4px; }
+  .week-strip { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+  .week-strip .d { width: 24px; height: 24px; border-radius: 50%; font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; color: var(--sub);
+    border: 2px solid var(--grid-line); }
+  .week-strip .d.done { background: #ffb020; border-color: #ffb020; color: #fff; }
+  .week-strip .d.today { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .win-btns { display: flex; gap: 10px; }
+  .win-btns button { flex: 1; border: none; border-radius: 16px; padding: 12px 4px 10px;
+    background: var(--accent-soft); color: var(--ink); font-weight: 800; font-size: 12px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .win-btns button .wi { font-size: 18px; }
+  .win-btns button.primary { background: var(--accent); color: #fff; }
+  .win-btns button:active { transform: scale(0.95); }
 </style>
 </head>
 <body>
@@ -250,6 +287,24 @@
     <button class="nav-btn" data-nav="collection"><span class="ic">🏆</span>Collection</button>
     <button class="nav-btn" data-nav="settings"><span class="ic">⚙️</span>Settings</button>
   </nav>
+
+  <canvas id="fx"></canvas>
+  <div class="win-overlay" id="winOverlay" hidden>
+    <div class="win-card">
+      <div class="win-title">Level clear!</div>
+      <div class="win-stars" id="winStars"></div>
+      <div class="win-sub" id="winSub">0 moves.</div>
+      <div class="win-streak">
+        <span class="flame">🔥</span><span class="stxt" id="winStreakTxt">1 day streak</span>
+        <div class="week-strip" id="weekStrip"></div>
+      </div>
+      <div class="win-btns">
+        <button id="winHome"><span class="wi">🏠</span>Home</button>
+        <button id="winRetry"><span class="wi">↻</span>Retry</button>
+        <button id="winNext" class="primary"><span class="wi">▶</span>Next</button>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -514,6 +569,7 @@ const CHAIN_KINDS = (window.MB_BUDDIES && window.MB_BUDDIES.length
   img: BUDDY_DIR + b.name + '.png',
   color: b.color,
   dark: shade(b.color, 0.42),
+  treat: b.treat || '',
 }));
 // warm the browser cache so faces pop in without a flash
 CHAIN_KINDS.forEach(k => { const i = new Image(); i.src = k.img; });
@@ -591,7 +647,7 @@ function generateLevel(levelIndex) {
     shuffle(kinds, rng);
     const chains = rawPaths.map((p, i) => {
       const k = kinds[i % kinds.length];
-      return { img: k.img, color: k.color, dark: k.dark, cells: p };
+      return { img: k.img, color: k.color, dark: k.dark, treat: k.treat, cells: p };
     });
     if (!repairSolvability(chains, rows, cols)) continue; // not fully peelable - reseed
     chosen = { rows, cols, chains, chainCount: chains.length, shape: shapeName };
@@ -724,8 +780,30 @@ function chainParts(chain, positions) {
   const hp = pt(positions[n - 1].r, positions[n - 1].c); // head  -> forward arrow
   return {
     d,
-    deco: buddyImageSVG(chain.img, tp.x, tp.y) + fwdArrow(hp.x, hp.y, hdir, chain.dark),
+    deco: trailTreats(chain, positions) + buddyImageSVG(chain.img, tp.x, tp.y) + fwdArrow(hp.x, hp.y, hdir, chain.dark),
   };
+}
+
+// a little themed nibble sitting beside the trail every 2nd tile, alternating sides
+function trailTreats(chain, positions) {
+  if (!chain.treat) return '';
+  const n = positions.length;
+  const fs = (cellSize * 0.5).toFixed(1);
+  let out = '';
+  for (let i = 2; i <= n - 2; i += 2) {
+    const a = pt(positions[i - 1].r, positions[i - 1].c);
+    const b = pt(positions[i + 1].r, positions[i + 1].c);
+    let vx = b.x - a.x, vy = b.y - a.y;
+    const len = Math.hypot(vx, vy) || 1;
+    vx /= len; vy /= len;
+    const side = ((i / 2) % 2 === 0) ? 1 : -1;
+    const off = cellSize * 0.62 * side;
+    const p = pt(positions[i].r, positions[i].c);
+    const x = (p.x - vy * off).toFixed(1);
+    const y = (p.y + vx * off).toFixed(1);
+    out += `<text x="${x}" y="${y}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${chain.treat}</text>`;
+  }
+  return out;
 }
 
 // the approved buddy artwork, centred on a cell, a touch larger than the cell
@@ -951,9 +1029,9 @@ async function onTap(idx) {
 
   if (levelData.chains.length === 0) {
     await win();
-  } else {
-    setStatus('Nice!', 'win');
+    return; // busy stays true until the win overlay is dismissed
   }
+  setStatus('Nice!', 'win');
   busy = false;
 }
 
@@ -996,20 +1074,118 @@ async function shakeChain(idx) {
 }
 
 async function win() {
-  setStatus('Solved in ' + moves + ' moves!', 'win');
+  setStatus('', '');
   vibrate(30);
-  nextBtn.style.display = 'inline-block';
 
   save.totalWins++;
   save.currentWinStreak++;
   save.bestWinStreak = Math.max(save.bestWinStreak, save.currentWinStreak);
-  if (moves <= levelData.chainCount) save.perfectRuns++;
-  currentLevel++;
-  save.level = currentLevel;
+  if (!lostAnyHeart) save.perfectRuns++;
+  save.level = Math.max(save.level, currentLevel + 1);
   refreshBadges();
   updateDayStreak();
   persist();
+
+  showWinOverlay();
 }
+
+// ---- confetti burst (no lib) ----
+const fx = document.getElementById('fx');
+const fxCtx = fx.getContext('2d');
+let fxParticles = [], fxRAF = 0;
+const CONFETTI_COLORS = ['#ffc32b', '#5b6cff', '#34c77b', '#ff4d5e', '#f59b23', '#8c5bff', '#4ec3d0'];
+
+function sizeFx() {
+  const r = document.getElementById('app').getBoundingClientRect();
+  fx.width = r.width; fx.height = r.height;
+}
+function burstConfetti() {
+  sizeFx();
+  const cx = fx.width / 2, cy = fx.height * 0.42;
+  fxParticles = [];
+  for (let i = 0; i < 160; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 4 + Math.random() * 9;
+    fxParticles.push({
+      x: cx + (Math.random() - 0.5) * 40, y: cy + (Math.random() - 0.5) * 20,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3,
+      g: 0.18 + Math.random() * 0.12,
+      w: 5 + Math.random() * 7, h: 8 + Math.random() * 8,
+      rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
+      col: CONFETTI_COLORS[i % CONFETTI_COLORS.length], life: 1,
+    });
+  }
+  cancelAnimationFrame(fxRAF);
+  const step = () => {
+    fxCtx.clearRect(0, 0, fx.width, fx.height);
+    let alive = 0;
+    for (const p of fxParticles) {
+      p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      p.vx *= 0.99; p.life -= 0.009;
+      if (p.life > 0 && p.y < fx.height + 30) {
+        alive++;
+        fxCtx.save();
+        fxCtx.translate(p.x, p.y); fxCtx.rotate(p.rot);
+        fxCtx.globalAlpha = Math.max(0, Math.min(1, p.life));
+        fxCtx.fillStyle = p.col;
+        fxCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        fxCtx.restore();
+      }
+    }
+    if (alive) fxRAF = requestAnimationFrame(step);
+    else fxCtx.clearRect(0, 0, fx.width, fx.height);
+  };
+  fxRAF = requestAnimationFrame(step);
+}
+window.addEventListener('resize', () => { if (!winOverlay.hidden) sizeFx(); });
+
+// ---- win overlay ----
+const winOverlay = document.getElementById('winOverlay');
+const DOW_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+function renderWeekStrip() {
+  const strip = document.getElementById('weekStrip');
+  const dow = (new Date().getDay() + 6) % 7; // 0=Mon .. 6=Sun
+  const filledBack = Math.min(dow, Math.max(0, (save.dayStreak || 1) - 1));
+  strip.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const d = document.createElement('div');
+    d.className = 'd' + (i === dow ? ' today' : (i < dow && i >= dow - filledBack ? ' done' : ''));
+    d.textContent = i === dow ? '✓' : DOW_LABELS[i];
+    strip.appendChild(d);
+  }
+}
+function showWinOverlay() {
+  const stars = Math.max(1, hearts); // 3 = flawless, fewer if hearts were lost
+  const starEls = [0, 1, 2].map(i => '<span class="s' + (i < stars ? ' on' : '') + '">★</span>').join('');
+  document.getElementById('winStars').innerHTML = starEls;
+  document.getElementById('winSub').textContent = moves + (moves === 1 ? ' move.' : ' moves.');
+  const ds = save.dayStreak || 1;
+  document.getElementById('winStreakTxt').textContent = ds + (ds === 1 ? ' day streak' : ' day streak');
+  renderWeekStrip();
+  winOverlay.hidden = false;
+  busy = true;
+  burstConfetti();
+}
+function hideWinOverlay() {
+  winOverlay.hidden = true;
+  cancelAnimationFrame(fxRAF);
+  fxCtx.clearRect(0, 0, fx.width, fx.height);
+  busy = false;
+}
+document.getElementById('winNext').addEventListener('click', () => {
+  currentLevel++;
+  hideWinOverlay();
+  buildBoard();
+});
+document.getElementById('winRetry').addEventListener('click', () => {
+  hideWinOverlay();
+  buildBoard();
+});
+document.getElementById('winHome').addEventListener('click', () => {
+  hideWinOverlay();
+  showScreen('home');
+});
 
 nextBtn.addEventListener('click', () => buildBoard());
 restartBtn.addEventListener('click', () => buildBoard());

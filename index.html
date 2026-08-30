@@ -240,6 +240,14 @@
   /* --- settings sheets --- */
   .settings-row.tappable { cursor: pointer; }
   .settings-row.tappable:active { background: var(--accent-soft); border-radius: 10px; }
+  .settings-group:has(.rate-row) { background: var(--accent-soft); }
+  .rate-row .left { color: var(--accent); font-weight: 800; }
+  .rate-row .icon { color: #ffc32b !important; }
+  .rate-row .val { color: var(--accent); }
+  .trophy-cell .t-ico { position: relative; }
+  .trophy-cell .t-bud { position: absolute; width: 20px; height: 20px; right: 2px; bottom: -2px; object-fit: contain;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+  .trophy-cell.locked .t-bud { filter: grayscale(1) opacity(.6); }
   .sheet-overlay { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
     background: rgba(10,14,8,0.42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); padding: 24px; }
   .sheet-overlay[hidden] { display: none; }
@@ -312,10 +320,10 @@
     <div class="home-mid">
       <div class="buddy-avatar" id="buddyAvatar"><img src="design/characters/buddies/rusty.png" alt=""></div>
       <div class="wordmark"><span class="tri" data-ico="tri"></span>Maze Buddies</div>
-      <div class="level-line">Level <span id="homeLevel">1</span></div>
+      <div class="level-line"><span data-i18n="level">Level</span> <span id="homeLevel">1</span></div>
       <div class="buddy-name" id="buddyName">Foxy</div>
     </div>
-    <button class="play-btn" id="playBtn">Play</button>
+    <button class="play-btn" id="playBtn" data-i18n="play">Play</button>
   </section>
 
   <!-- GAME -->
@@ -341,78 +349,75 @@
 
   <!-- COLLECTION -->
   <section class="screen" id="screen-collection">
-    <div class="screen-title">Collection</div>
-    <div class="section-title">Records</div>
+    <div class="screen-title" data-i18n="collection">Collection</div>
+    <div class="section-title" data-i18n="records">Records</div>
     <div class="record-row" id="recordRow"></div>
-    <div class="section-title">Awards</div>
+    <div class="section-title" data-i18n="awards">Awards</div>
     <div class="award-grid" id="awardGrid"></div>
-    <div class="section-title">Challenge Trophies</div>
-    <div class="trophy-year" id="trophyYear"></div>
-    <div class="trophy-grid" id="trophyGrid"></div>
+    <div class="section-title" data-i18n="challengeTrophies">Challenge Trophies</div>
+    <div id="trophyWrap"></div>
   </section>
 
   <!-- SETTINGS -->
   <section class="screen" id="screen-settings">
-    <div class="screen-title">Settings</div>
+    <div class="screen-title" data-i18n="settings">Settings</div>
     <div class="settings-group">
       <div class="settings-row tappable" data-modal="language">
-        <div class="left"><span class="icon" data-ico="globe"></span>Language</div>
+        <div class="left"><span class="icon" data-ico="globe"></span><span data-i18n="language">Language</span></div>
         <div class="val" id="langVal">English &rsaquo;</div>
       </div>
       <div class="settings-row">
-        <div class="left"><span class="icon" data-ico="vib"></span>Vibrations</div>
+        <div class="left"><span class="icon" data-ico="vib"></span><span data-i18n="vibrations">Vibrations</span></div>
         <button class="toggle on" id="toggleVibration"><span class="knob"></span></button>
       </div>
       <div class="settings-row">
-        <div class="left"><span class="icon" data-ico="sound"></span>Sounds</div>
+        <div class="left"><span class="icon" data-ico="sound"></span><span data-i18n="sounds">Sounds</span></div>
         <button class="toggle on" id="toggleSound"><span class="knob"></span></button>
       </div>
       <div class="settings-row">
-        <div class="left"><span class="icon" data-ico="moon"></span>Dark mode</div>
+        <div class="left"><span class="icon" data-ico="moon"></span><span data-i18n="darkMode">Dark mode</span></div>
         <button class="toggle" id="toggleDark"><span class="knob"></span></button>
       </div>
     </div>
     <div class="settings-group">
       <div class="settings-row tappable" data-modal="account">
-        <div class="left"><span class="icon" data-ico="person"></span>Account Connection</div>
+        <div class="left"><span class="icon" data-ico="person"></span><span data-i18n="accountConn">Account Connection</span></div>
         <div class="val" id="accountVal">Off &rsaquo;</div>
       </div>
     </div>
     <div class="settings-group">
-      <div class="settings-row tappable" data-modal="removeads"><div class="left"><span class="icon" data-ico="ban"></span>Remove Ads</div><div class="val">&rsaquo;</div></div>
-      <div class="settings-row tappable" id="restoreRow"><div class="left"><span class="icon" data-ico="retry"></span>Restore purchases</div></div>
+      <div class="settings-row rate-row tappable" data-modal="rate">
+        <div class="left"><span class="icon" data-ico="star"></span><span data-i18n="rateUs">Rate us</span></div>
+        <div class="val">&rsaquo;</div>
+      </div>
     </div>
     <div class="settings-group">
-      <div class="settings-row tappable" data-modal="rate"><div class="left"><span class="icon" data-ico="star"></span>Rate us</div></div>
-      <div class="settings-row tappable" id="writeRow"><div class="left"><span class="icon" data-ico="pencil"></span>Write us</div></div>
-    </div>
-    <div class="settings-group">
-      <div class="settings-row tappable" id="privacyRow"><div class="left"><span class="icon" data-ico="doc"></span>Privacy</div></div>
-      <div class="settings-row tappable" id="termsRow"><div class="left"><span class="icon" data-ico="info"></span>Terms of Service</div></div>
+      <div class="settings-row tappable" data-modal="removeads"><div class="left"><span class="icon" data-ico="ban"></span><span data-i18n="removeAds">Remove Ads</span></div><div class="val">&rsaquo;</div></div>
+      <div class="settings-row tappable" id="restoreRow"><div class="left"><span class="icon" data-ico="retry"></span><span data-i18n="restorePurch">Restore purchases</span></div></div>
     </div>
   </section>
 
   <nav class="bottom-nav">
-    <button class="nav-btn active" data-nav="home"><span class="ic" data-ico="home"></span>Home</button>
-    <button class="nav-btn" data-nav="game" id="navLevel"><span class="ic" data-ico="lock"></span>Level</button>
-    <button class="nav-btn" data-nav="collection"><span class="ic" data-ico="trophy"></span>Collection</button>
-    <button class="nav-btn" data-nav="settings"><span class="ic" data-ico="gear"></span>Settings</button>
+    <button class="nav-btn active" data-nav="home"><span class="ic" data-ico="home"></span><span data-i18n="navHome">Home</span></button>
+    <button class="nav-btn" data-nav="game" id="navLevel"><span class="ic" data-ico="lock"></span><span data-i18n="navLevel">Level</span></button>
+    <button class="nav-btn" data-nav="collection"><span class="ic" data-ico="trophy"></span><span data-i18n="navCollection">Collection</span></button>
+    <button class="nav-btn" data-nav="settings"><span class="ic" data-ico="gear"></span><span data-i18n="navSettings">Settings</span></button>
   </nav>
 
   <canvas id="fx"></canvas>
   <div class="win-overlay" id="winOverlay" hidden>
     <div class="win-card">
-      <div class="win-title">Level clear!</div>
+      <div class="win-title" data-i18n="levelClear">Level clear!</div>
       <div class="win-sub" id="winSub">0 moves.</div>
       <div class="win-streak">
         <span class="flame" data-ico="flame"></span><span class="stxt" id="winStreakTxt">1 day streak</span>
         <div class="week-strip" id="weekStrip"></div>
       </div>
       <div class="win-btns">
-        <button id="winHome"><span class="wi" data-ico="home"></span>Home</button>
-        <button id="winRetry"><span class="wi" data-ico="retry"></span>Retry</button>
+        <button id="winHome"><span class="wi" data-ico="home"></span><span data-i18n="home">Home</span></button>
+        <button id="winRetry"><span class="wi" data-ico="retry"></span><span data-i18n="retry">Retry</span></button>
       </div>
-      <button id="winNext" class="big-next"><span class="wi" data-ico="next"></span>Next level</button>
+      <button id="winNext" class="big-next"><span class="wi" data-ico="next"></span><span data-i18n="nextLevel">Next level</span></button>
     </div>
   </div>
 
@@ -421,10 +426,10 @@
       <div class="win-title" id="failTitle">Continue?</div>
       <div class="fail-hearts" id="failHearts"></div>
       <div class="win-sub" id="failSub">Watch a short ad to revive with an extra life.</div>
-      <button class="revive-btn" id="failRevive"><span class="wi" data-ico="next"></span>Watch ad &amp; revive<span class="ad-tag">Ad</span></button>
+      <button class="revive-btn" id="failRevive"><span class="wi" data-ico="next"></span><span data-i18n="watchRevive">Watch ad &amp; revive</span><span class="ad-tag">Ad</span></button>
       <div class="win-btns">
-        <button id="failRestart"><span class="wi" data-ico="retry"></span>Restart</button>
-        <button id="failHome"><span class="wi" data-ico="home"></span>Home</button>
+        <button id="failRestart"><span class="wi" data-ico="retry"></span><span data-i18n="restart">Restart</span></button>
+        <button id="failHome"><span class="wi" data-ico="home"></span><span data-i18n="home">Home</span></button>
       </div>
     </div>
   </div>
@@ -432,34 +437,34 @@
   <!-- settings sheets -->
   <div class="sheet-overlay" id="sheetOverlay" hidden>
     <div class="sheet-card" data-sheet="language" hidden>
-      <div class="sheet-title">Language</div>
+      <div class="sheet-title" data-i18n="language">Language</div>
       <div class="lang-list" id="langList"></div>
-      <button class="sheet-close" data-close>Close</button>
+      <button class="sheet-close" data-close data-i18n="close">Close</button>
     </div>
     <div class="sheet-card" data-sheet="rate" hidden>
-      <div class="sheet-title">Enjoying Maze Buddies?</div>
+      <div class="sheet-title" data-i18n="enjoying">Enjoying Maze Buddies?</div>
       <div class="rate-stars">★★★★★</div>
-      <div class="sheet-sub">Take a moment to rate the game! Thank you for your support.</div>
-      <button class="sheet-btn" id="rateLow">1-4 Stars</button>
-      <button class="sheet-btn primary" id="rateHigh">5 Stars</button>
-      <button class="sheet-close" data-close>Close</button>
+      <div class="sheet-sub" data-i18n="rateBody">Take a moment to rate the game! Thank you for your support.</div>
+      <button class="sheet-btn" id="rateLow" data-i18n="stars14">1-4 Stars</button>
+      <button class="sheet-btn primary" id="rateHigh" data-i18n="stars5">5 Stars</button>
+      <button class="sheet-close" data-close data-i18n="close">Close</button>
     </div>
     <div class="sheet-card" data-sheet="account" hidden>
-      <div class="sheet-title">Connect Account</div>
-      <div class="sheet-sub">Sign in to save your level progress!</div>
-      <button class="sheet-btn signin" id="signApple"><span class="si-ic"></span>Sign in with Apple</button>
-      <button class="sheet-btn signin" id="signGoogle"><span class="si-ic g"></span>Sign in with Google</button>
-      <div class="sheet-fine">By signing up you agree to our <b>Terms of Service</b></div>
-      <button class="sheet-close" data-close>Close</button>
+      <div class="sheet-title" data-i18n="connectAcc">Connect Account</div>
+      <div class="sheet-sub" data-i18n="signInSave">Sign in to save your level progress!</div>
+      <button class="sheet-btn signin" id="signApple"><span class="si-ic"></span><span data-i18n="signApple">Sign in with Apple</span></button>
+      <button class="sheet-btn signin" id="signGoogle"><span class="si-ic g"></span><span data-i18n="signGoogle">Sign in with Google</span></button>
+      <div class="sheet-fine" data-i18n="termsAgree">By signing up you agree to our Terms of Service</div>
+      <button class="sheet-close" data-close data-i18n="close">Close</button>
     </div>
     <div class="sheet-card" data-sheet="removeads" hidden>
-      <div class="sheet-title">Remove Ads</div>
+      <div class="sheet-title" data-i18n="removeAds">Remove Ads</div>
       <ul class="ra-list">
-        <li><span data-ico="info"></span>No forced ads between levels</li>
-        <li><span data-ico="info"></span>Hint and life-refill ads stay available</li>
+        <li><span data-ico="info"></span><span data-i18n="raB1">No forced ads between levels</span></li>
+        <li><span data-ico="info"></span><span data-i18n="raB2">Hint and life-refill ads stay available</span></li>
       </ul>
       <button class="sheet-btn primary" id="raBuy">4 490 HUF</button>
-      <button class="sheet-close" data-close>Close</button>
+      <button class="sheet-close" data-close data-i18n="close">Close</button>
     </div>
   </div>
 
@@ -470,7 +475,7 @@
       <div class="win-title" id="awardTitle">Award</div>
       <div class="win-sub" id="awardDesc"></div>
       <div class="award-bar" id="awardBarWrap" hidden><div class="award-bar-fill" id="awardBarFill"></div><span id="awardBarTxt"></span></div>
-      <button class="big-next" data-close-award><span class="wi" data-ico="next"></span>Nice!</button>
+      <button class="big-next" data-close-award><span class="wi" data-ico="next"></span><span data-i18n="nice">Nice!</span></button>
     </div>
   </div>
 
@@ -540,6 +545,131 @@ function ico(name, twoTone) {
   const p = ICO[name] || '';
   return '<svg class="ico" viewBox="0 0 24 24" fill="' + (twoTone ? 'currentColor' : 'currentColor') + '" aria-hidden="true">' + p + '</svg>';
 }
+
+/* ---- localisation (small string set, 10 languages) --------------------- */
+const LANGS = [
+  { code: 'en', label: 'English' }, { code: 'de', label: 'Deutsch' }, { code: 'fr', label: 'Francais' },
+  { code: 'es', label: 'Espanol' }, { code: 'it', label: 'Italiano' }, { code: 'pt', label: 'Portugues' },
+  { code: 'nl', label: 'Nederlands' }, { code: 'pl', label: 'Polski' }, { code: 'tr', label: 'Turkce' },
+  { code: 'ru', label: 'Русский' },
+];
+const I18N = {
+  en: { play:'Play', tapHint:'Tap a buddy to slide it out.', blocked:'Blocked - try another buddy.', reshuffle:'Reshuffling this one...', nice:'Nice!',
+    levelClear:'Level clear!', moves:'moves.', move:'move.', dayStreak:'day streak', home:'Home', retry:'Retry', nextLevel:'Next level',
+    continueQ:'Continue?', levelFailed:'Level failed', reviveSub:'Watch a short ad to revive with an extra life.', noLives:'No lives left. Give this level another go.',
+    watchRevive:'Watch ad & revive', restart:'Restart', level:'Level',
+    navHome:'Home', navLevel:'Level', navCollection:'Collection', navSettings:'Settings',
+    settings:'Settings', language:'Language', vibrations:'Vibrations', sounds:'Sounds', darkMode:'Dark mode', accountConn:'Account Connection',
+    removeAds:'Remove Ads', restorePurch:'Restore purchases', rateUs:'Rate us', writeUs:'Write us', privacy:'Privacy', terms:'Terms of Service', on:'On', off:'Off', close:'Close',
+    enjoying:'Enjoying Maze Buddies?', rateBody:'Take a moment to rate the game! Thank you for your support.', stars14:'1-4 Stars', stars5:'5 Stars',
+    connectAcc:'Connect Account', signInSave:'Sign in to save your level progress!', signApple:'Sign in with Apple', signGoogle:'Sign in with Google',
+    termsAgree:'By signing up you agree to our Terms of Service', raB1:'No forced ads between levels', raB2:'Hint and life-refill ads stay available',
+    collection:'Collection', records:'Records', awards:'Awards', challengeTrophies:'Challenge Trophies', longestStreak:'Longest streak', bestWinStreak:'Best win streak', totalWins:'Total wins', earned:'Earned' },
+  de: { play:'Spielen', tapHint:'Tippe einen Buddy an, um ihn herauszuschieben.', blocked:'Blockiert - versuch einen anderen Buddy.', reshuffle:'Wird neu gemischt...', nice:'Super!',
+    levelClear:'Level geschafft!', moves:'Zuge.', move:'Zug.', dayStreak:'Tage Serie', home:'Start', retry:'Nochmal', nextLevel:'Nachstes Level',
+    continueQ:'Weiter?', levelFailed:'Level verloren', reviveSub:'Sieh dir eine kurze Werbung an, um mit einem Extra-Leben weiterzuspielen.', noLives:'Keine Leben mehr. Versuch dieses Level noch einmal.',
+    watchRevive:'Werbung ansehen & wiederbeleben', restart:'Neustart', level:'Level',
+    navHome:'Start', navLevel:'Level', navCollection:'Sammlung', navSettings:'Einstellungen',
+    settings:'Einstellungen', language:'Sprache', vibrations:'Vibration', sounds:'Ton', darkMode:'Dunkelmodus', accountConn:'Konto verbinden',
+    removeAds:'Werbung entfernen', restorePurch:'Kaufe wiederherstellen', rateUs:'Bewerten', writeUs:'Schreib uns', privacy:'Datenschutz', terms:'Nutzungsbedingungen', on:'An', off:'Aus', close:'Schliessen',
+    enjoying:'Gefallt dir Maze Buddies?', rateBody:'Nimm dir kurz Zeit, das Spiel zu bewerten. Danke fur deine Unterstutzung!', stars14:'1-4 Sterne', stars5:'5 Sterne',
+    connectAcc:'Konto verbinden', signInSave:'Melde dich an, um deinen Fortschritt zu sichern!', signApple:'Mit Apple anmelden', signGoogle:'Mit Google anmelden',
+    termsAgree:'Mit der Anmeldung akzeptierst du unsere Nutzungsbedingungen', raB1:'Keine Zwangswerbung zwischen Levels', raB2:'Tipp- und Leben-Werbung bleibt verfugbar',
+    collection:'Sammlung', records:'Rekorde', awards:'Auszeichnungen', challengeTrophies:'Challenge-Trophaen', longestStreak:'Langste Serie', bestWinStreak:'Beste Siegesserie', totalWins:'Siege gesamt', earned:'Erhalten' },
+  fr: { play:'Jouer', tapHint:'Touche un buddy pour le faire glisser.', blocked:'Bloque - essaie un autre buddy.', reshuffle:'On rebrasse celui-la...', nice:'Bravo !',
+    levelClear:'Niveau termine !', moves:'coups.', move:'coup.', dayStreak:'jours de suite', home:'Accueil', retry:'Recommencer', nextLevel:'Niveau suivant',
+    continueQ:'Continuer ?', levelFailed:'Niveau echoue', reviveSub:'Regarde une courte pub pour revivre avec une vie en plus.', noLives:'Plus de vies. Retente ce niveau.',
+    watchRevive:'Voir la pub & revivre', restart:'Recommencer', level:'Niveau',
+    navHome:'Accueil', navLevel:'Niveau', navCollection:'Collection', navSettings:'Reglages',
+    settings:'Reglages', language:'Langue', vibrations:'Vibrations', sounds:'Sons', darkMode:'Mode sombre', accountConn:'Connexion du compte',
+    removeAds:'Supprimer les pubs', restorePurch:'Restaurer les achats', rateUs:'Noter le jeu', writeUs:'Nous ecrire', privacy:'Confidentialite', terms:"Conditions d'utilisation", on:'Oui', off:'Non', close:'Fermer',
+    enjoying:'Tu aimes Maze Buddies ?', rateBody:'Prends un instant pour noter le jeu. Merci de ton soutien !', stars14:'1-4 etoiles', stars5:'5 etoiles',
+    connectAcc:'Connecter le compte', signInSave:'Connecte-toi pour sauvegarder ta progression !', signApple:'Se connecter avec Apple', signGoogle:'Se connecter avec Google',
+    termsAgree:"En t'inscrivant tu acceptes nos conditions d'utilisation", raB1:'Pas de pub forcee entre les niveaux', raB2:'Les pubs indice et vie restent disponibles',
+    collection:'Collection', records:'Records', awards:'Recompenses', challengeTrophies:'Trophees de defi', longestStreak:'Plus longue serie', bestWinStreak:'Meilleure serie de victoires', totalWins:'Victoires totales', earned:'Obtenu' },
+  es: { play:'Jugar', tapHint:'Toca un buddy para deslizarlo.', blocked:'Bloqueado - prueba con otro buddy.', reshuffle:'Rebarajando este...', nice:'Bien!',
+    levelClear:'Nivel superado!', moves:'movimientos.', move:'movimiento.', dayStreak:'dias seguidos', home:'Inicio', retry:'Reintentar', nextLevel:'Siguiente nivel',
+    continueQ:'Continuar?', levelFailed:'Nivel fallido', reviveSub:'Mira un anuncio corto para revivir con una vida extra.', noLives:'Sin vidas. Intenta este nivel otra vez.',
+    watchRevive:'Ver anuncio y revivir', restart:'Reiniciar', level:'Nivel',
+    navHome:'Inicio', navLevel:'Nivel', navCollection:'Coleccion', navSettings:'Ajustes',
+    settings:'Ajustes', language:'Idioma', vibrations:'Vibracion', sounds:'Sonidos', darkMode:'Modo oscuro', accountConn:'Conexion de cuenta',
+    removeAds:'Quitar anuncios', restorePurch:'Restaurar compras', rateUs:'Valoranos', writeUs:'Escribenos', privacy:'Privacidad', terms:'Terminos del servicio', on:'Si', off:'No', close:'Cerrar',
+    enjoying:'Te gusta Maze Buddies?', rateBody:'Toma un momento para valorar el juego. Gracias por tu apoyo!', stars14:'1-4 estrellas', stars5:'5 estrellas',
+    connectAcc:'Conectar cuenta', signInSave:'Inicia sesion para guardar tu progreso!', signApple:'Iniciar sesion con Apple', signGoogle:'Iniciar sesion con Google',
+    termsAgree:'Al registrarte aceptas nuestros terminos del servicio', raB1:'Sin anuncios forzados entre niveles', raB2:'Los anuncios de pista y vida siguen disponibles',
+    collection:'Coleccion', records:'Records', awards:'Premios', challengeTrophies:'Trofeos de desafio', longestStreak:'Racha mas larga', bestWinStreak:'Mejor racha de victorias', totalWins:'Victorias totales', earned:'Conseguido' },
+  it: { play:'Gioca', tapHint:'Tocca un buddy per farlo scivolare.', blocked:'Bloccato - prova un altro buddy.', reshuffle:'Rimescolo questo...', nice:'Bravo!',
+    levelClear:'Livello completato!', moves:'mosse.', move:'mossa.', dayStreak:'giorni di fila', home:'Home', retry:'Riprova', nextLevel:'Livello successivo',
+    continueQ:'Continuare?', levelFailed:'Livello fallito', reviveSub:'Guarda un breve annuncio per rivivere con una vita extra.', noLives:'Vite finite. Riprova questo livello.',
+    watchRevive:'Guarda annuncio e rivivi', restart:'Ricomincia', level:'Livello',
+    navHome:'Home', navLevel:'Livello', navCollection:'Collezione', navSettings:'Impostazioni',
+    settings:'Impostazioni', language:'Lingua', vibrations:'Vibrazione', sounds:'Suoni', darkMode:'Modo scuro', accountConn:'Connessione account',
+    removeAds:'Rimuovi le pubblicita', restorePurch:'Ripristina acquisti', rateUs:'Valutaci', writeUs:'Scrivici', privacy:'Privacy', terms:'Termini di servizio', on:'Si', off:'No', close:'Chiudi',
+    enjoying:'Ti piace Maze Buddies?', rateBody:'Prenditi un momento per valutare il gioco. Grazie del supporto!', stars14:'1-4 stelle', stars5:'5 stelle',
+    connectAcc:'Connetti account', signInSave:'Accedi per salvare i tuoi progressi!', signApple:'Accedi con Apple', signGoogle:'Accedi con Google',
+    termsAgree:'Registrandoti accetti i nostri termini di servizio', raB1:'Niente pubblicita forzate tra i livelli', raB2:'Restano le pubblicita per aiuti e vite',
+    collection:'Collezione', records:'Record', awards:'Premi', challengeTrophies:'Trofei sfida', longestStreak:'Serie piu lunga', bestWinStreak:'Miglior serie di vittorie', totalWins:'Vittorie totali', earned:'Ottenuto' },
+  pt: { play:'Jogar', tapHint:'Toca num buddy para o deslizar.', blocked:'Bloqueado - tenta outro buddy.', reshuffle:'A baralhar este...', nice:'Boa!',
+    levelClear:'Nivel concluido!', moves:'jogadas.', move:'jogada.', dayStreak:'dias seguidos', home:'Inicio', retry:'Repetir', nextLevel:'Proximo nivel',
+    continueQ:'Continuar?', levelFailed:'Nivel falhado', reviveSub:'Ve um anuncio curto para reviver com uma vida extra.', noLives:'Sem vidas. Tenta este nivel de novo.',
+    watchRevive:'Ver anuncio e reviver', restart:'Reiniciar', level:'Nivel',
+    navHome:'Inicio', navLevel:'Nivel', navCollection:'Colecao', navSettings:'Definicoes',
+    settings:'Definicoes', language:'Idioma', vibrations:'Vibracao', sounds:'Sons', darkMode:'Modo escuro', accountConn:'Ligacao de conta',
+    removeAds:'Remover anuncios', restorePurch:'Restaurar compras', rateUs:'Avalia-nos', writeUs:'Escreve-nos', privacy:'Privacidade', terms:'Termos de servico', on:'Sim', off:'Nao', close:'Fechar',
+    enjoying:'Estas a gostar de Maze Buddies?', rateBody:'Reserva um momento para avaliar o jogo. Obrigado pelo apoio!', stars14:'1-4 estrelas', stars5:'5 estrelas',
+    connectAcc:'Ligar conta', signInSave:'Inicia sessao para guardar o teu progresso!', signApple:'Iniciar sessao com Apple', signGoogle:'Iniciar sessao com Google',
+    termsAgree:'Ao registares-te aceitas os nossos termos de servico', raB1:'Sem anuncios forcados entre niveis', raB2:'Os anuncios de dica e vida continuam disponiveis',
+    collection:'Colecao', records:'Recordes', awards:'Premios', challengeTrophies:'Trofeus de desafio', longestStreak:'Sequencia mais longa', bestWinStreak:'Melhor sequencia de vitorias', totalWins:'Vitorias totais', earned:'Conquistado' },
+  nl: { play:'Spelen', tapHint:'Tik op een buddy om hem eruit te schuiven.', blocked:'Geblokkeerd - probeer een andere buddy.', reshuffle:'Deze wordt opnieuw geschud...', nice:'Top!',
+    levelClear:'Level gehaald!', moves:'zetten.', move:'zet.', dayStreak:'dagen op rij', home:'Home', retry:'Opnieuw', nextLevel:'Volgend level',
+    continueQ:'Doorgaan?', levelFailed:'Level mislukt', reviveSub:'Bekijk een korte advertentie om verder te spelen met een extra leven.', noLives:'Geen levens meer. Probeer dit level opnieuw.',
+    watchRevive:'Advertentie bekijken & herleven', restart:'Herstarten', level:'Level',
+    navHome:'Home', navLevel:'Level', navCollection:'Collectie', navSettings:'Instellingen',
+    settings:'Instellingen', language:'Taal', vibrations:'Trillingen', sounds:'Geluiden', darkMode:'Donkere modus', accountConn:'Accountkoppeling',
+    removeAds:'Advertenties verwijderen', restorePurch:'Aankopen herstellen', rateUs:'Beoordeel ons', writeUs:'Schrijf ons', privacy:'Privacy', terms:'Servicevoorwaarden', on:'Aan', off:'Uit', close:'Sluiten',
+    enjoying:'Vind je Maze Buddies leuk?', rateBody:'Neem even de tijd om het spel te beoordelen. Bedankt voor je steun!', stars14:'1-4 sterren', stars5:'5 sterren',
+    connectAcc:'Account koppelen', signInSave:'Log in om je voortgang op te slaan!', signApple:'Inloggen met Apple', signGoogle:'Inloggen met Google',
+    termsAgree:'Door je aan te melden ga je akkoord met onze servicevoorwaarden', raB1:'Geen gedwongen advertenties tussen levels', raB2:'Hint- en levenadvertenties blijven beschikbaar',
+    collection:'Collectie', records:'Records', awards:'Prijzen', challengeTrophies:'Challenge-trofeeen', longestStreak:'Langste reeks', bestWinStreak:'Beste winreeks', totalWins:'Totale overwinningen', earned:'Behaald' },
+  pl: { play:'Graj', tapHint:'Dotknij buddy, aby go wysunac.', blocked:'Zablokowane - sprobuj innego buddy.', reshuffle:'Tasujemy ten poziom...', nice:'Brawo!',
+    levelClear:'Poziom ukonczony!', moves:'ruchow.', move:'ruch.', dayStreak:'dni z rzedu', home:'Ekran glowny', retry:'Ponow', nextLevel:'Nastepny poziom',
+    continueQ:'Kontynuowac?', levelFailed:'Poziom przegrany', reviveSub:'Obejrzyj krotka reklame, aby wrocic z dodatkowym zyciem.', noLives:'Brak zyc. Sprobuj ten poziom jeszcze raz.',
+    watchRevive:'Obejrzyj reklame i wroc', restart:'Od nowa', level:'Poziom',
+    navHome:'Glowna', navLevel:'Poziom', navCollection:'Kolekcja', navSettings:'Ustawienia',
+    settings:'Ustawienia', language:'Jezyk', vibrations:'Wibracje', sounds:'Dzwieki', darkMode:'Tryb ciemny', accountConn:'Polaczenie konta',
+    removeAds:'Usun reklamy', restorePurch:'Przywroc zakupy', rateUs:'Ocen nas', writeUs:'Napisz do nas', privacy:'Prywatnosc', terms:'Warunki uslugi', on:'Wl', off:'Wyl', close:'Zamknij',
+    enjoying:'Podoba Ci sie Maze Buddies?', rateBody:'Poswiec chwile na ocene gry. Dziekujemy za wsparcie!', stars14:'1-4 gwiazdki', stars5:'5 gwiazdek',
+    connectAcc:'Polacz konto', signInSave:'Zaloguj sie, aby zapisac postep!', signApple:'Zaloguj przez Apple', signGoogle:'Zaloguj przez Google',
+    termsAgree:'Rejestrujac sie akceptujesz nasze warunki uslugi', raB1:'Brak wymuszonych reklam miedzy poziomami', raB2:'Reklamy za podpowiedzi i zycia pozostaja dostepne',
+    collection:'Kolekcja', records:'Rekordy', awards:'Nagrody', challengeTrophies:'Trofea wyzwan', longestStreak:'Najdluzsza seria', bestWinStreak:'Najlepsza seria zwyciestw', totalWins:'Wygrane lacznie', earned:'Zdobyto' },
+  tr: { play:'Oyna', tapHint:'Kaydirmak icin bir buddyye dokun.', blocked:'Engellendi - baska bir buddy dene.', reshuffle:'Bu bolum yeniden karistiriliyor...', nice:'Guzel!',
+    levelClear:'Bolum tamam!', moves:'hamle.', move:'hamle.', dayStreak:'gun seri', home:'Ana sayfa', retry:'Tekrar', nextLevel:'Sonraki bolum',
+    continueQ:'Devam?', levelFailed:'Bolum basarisiz', reviveSub:'Ekstra canla devam etmek icin kisa bir reklam izle.', noLives:'Can kalmadi. Bu bolumu tekrar dene.',
+    watchRevive:'Reklam izle ve diril', restart:'Bastan', level:'Bolum',
+    navHome:'Ana sayfa', navLevel:'Bolum', navCollection:'Koleksiyon', navSettings:'Ayarlar',
+    settings:'Ayarlar', language:'Dil', vibrations:'Titresim', sounds:'Sesler', darkMode:'Koyu mod', accountConn:'Hesap baglantisi',
+    removeAds:'Reklamlari kaldir', restorePurch:'Satin alimlari geri yukle', rateUs:'Bizi degerlendir', writeUs:'Bize yaz', privacy:'Gizlilik', terms:'Hizmet sartlari', on:'Acik', off:'Kapali', close:'Kapat',
+    enjoying:'Maze Buddiesi seviyor musun?', rateBody:'Oyunu degerlendirmek icin biraz zaman ayir. Destegin icin tesekkurler!', stars14:'1-4 Yildiz', stars5:'5 Yildiz',
+    connectAcc:'Hesabi bagla', signInSave:'Ilerlemeni kaydetmek icin giris yap!', signApple:'Apple ile giris yap', signGoogle:'Google ile giris yap',
+    termsAgree:'Kaydolarak hizmet sartlarimizi kabul edersin', raB1:'Bolumler arasi zorunlu reklam yok', raB2:'Ipucu ve can reklamlari acik kalir',
+    collection:'Koleksiyon', records:'Rekorlar', awards:'Oduller', challengeTrophies:'Meydan okuma kupalari', longestStreak:'En uzun seri', bestWinStreak:'En iyi galibiyet serisi', totalWins:'Toplam galibiyet', earned:'Kazanildi' },
+  ru: { play:'Играть', tapHint:'Коснитесь зверька, чтобы вывести его.', blocked:'Заблокировано - попробуйте другого.', reshuffle:'Перемешиваем этот уровень...', nice:'Отлично!',
+    levelClear:'Уровень пройден!', moves:'ходов.', move:'ход.', dayStreak:'дней подряд', home:'Домой', retry:'Заново', nextLevel:'Следующий уровень',
+    continueQ:'Продолжить?', levelFailed:'Уровень проигран', reviveSub:'Посмотрите короткую рекламу, чтобы продолжить с доп. жизнью.', noLives:'Жизней нет. Попробуйте этот уровень снова.',
+    watchRevive:'Смотреть рекламу и ожить', restart:'Заново', level:'Уровень',
+    navHome:'Домой', navLevel:'Уровень', navCollection:'Коллекция', navSettings:'Настройки',
+    settings:'Настройки', language:'Язык', vibrations:'Вибрация', sounds:'Звуки', darkMode:'Тёмная тема', accountConn:'Подключение аккаунта',
+    removeAds:'Убрать рекламу', restorePurch:'Восстановить покупки', rateUs:'Оценить', writeUs:'Написать нам', privacy:'Конфиденциальность', terms:'Условия использования', on:'Вкл', off:'Выкл', close:'Закрыть',
+    enjoying:'Нравится Maze Buddies?', rateBody:'Уделите минуту, чтобы оценить игру. Спасибо за поддержку!', stars14:'1-4 звезды', stars5:'5 звёзд',
+    connectAcc:'Подключить аккаунт', signInSave:'Войдите, чтобы сохранить прогресс!', signApple:'Войти через Apple', signGoogle:'Войти через Google',
+    termsAgree:'Регистрируясь, вы принимаете условия использования', raB1:'Нет принудительной рекламы между уровнями', raB2:'Реклама за подсказки и жизни остаётся',
+    collection:'Коллекция', records:'Рекорды', awards:'Награды', challengeTrophies:'Трофеи испытаний', longestStreak:'Самая длинная серия', bestWinStreak:'Лучшая серия побед', totalWins:'Всего побед', earned:'Получено' },
+};
+function t(key) {
+  const l = I18N[save && save.lang] || I18N.en;
+  return l[key] || I18N.en[key] || key;
+}
+function langLabel(code) { const x = LANGS.find(l => l.code === code); return x ? x.label : 'English'; }
 
 /* ============================================================
    Maze Buddies - bare-bones core loop (GATE 1 build)
@@ -982,7 +1112,7 @@ function loadSave() {
     lastPlayedDate: null,
     badges: {},
     monthWins: {},      // "YYYY-M" -> levels won that month
-    lang: 'English',
+    lang: 'en',
     account: false,
     noAds: false,
     rated: false,
@@ -1154,7 +1284,7 @@ function buildBoard() {
   statusEl.className = 'status';
   nextBtn.style.display = 'none';
   nextBtn.innerHTML = 'Next level &rarr;';
-  levelTagEl.textContent = 'Level ' + (currentLevel + 1);
+  levelTagEl.textContent = t('level') + ' ' + (currentLevel + 1);
   progressFill.style.width = Math.min(100, ((currentLevel % 10) / 10) * 100) + '%';
   heartsEl.style.display = 'flex';
   renderHearts();
@@ -1169,7 +1299,7 @@ function buildBoard() {
 
   renderBoard();
   resetView();
-  setStatus('Tap a buddy to slide it out.', '');
+  setStatus(t('tapHint'), '');
 }
 
 let boardW = 0, boardH = 0, boardPad = 0, lineW = 12, moves = 0;
@@ -1382,7 +1512,7 @@ async function onTap(uid) {
     // safety net: boards are solvable by construction, but if the player ever
     // reaches a state with chains left and no legal move, quietly reshuffle
     if (animating.size === 0 && levelData.chains.length && !levelData.chains.some(rayIsClear)) {
-      setStatus('Reshuffling this one...', '');
+      setStatus(t('reshuffle'), '');
       await sleep(700);
       buildBoard();
     }
@@ -1405,7 +1535,7 @@ function loseHeart() {
     setStatus('', '');
     setTimeout(showFailOverlay, 450); // let the heart-break read first
   } else {
-    setStatus('Blocked - try another buddy.', 'fail');
+    setStatus(t('blocked'), 'fail');
   }
 }
 
@@ -1595,9 +1725,9 @@ function renderWeekStrip() {
   }
 }
 function showWinOverlay() {
-  document.getElementById('winSub').textContent = moves + (moves === 1 ? ' move.' : ' moves.');
+  document.getElementById('winSub').textContent = moves + ' ' + t(moves === 1 ? 'move' : 'moves');
   const ds = save.dayStreak || 1;
-  document.getElementById('winStreakTxt').textContent = ds + ' day streak';
+  document.getElementById('winStreakTxt').textContent = ds + ' ' + t('dayStreak');
   renderWeekStrip();
   winOverlay.hidden = false;
   busy = true;
@@ -1633,15 +1763,15 @@ function showFailOverlay() {
   const restartBtnEl = document.getElementById('failRestart');
   if (revivedThisLevel) {
     // already used the revive on this level - this is a real fail, no continue
-    title.textContent = 'Level failed';
+    title.textContent = t('levelFailed');
     fh.innerHTML = ('<span class="lost">' + ico('heart') + '</span>').repeat(3);
-    sub.textContent = 'No lives left. Give this level another go.';
+    sub.textContent = t('noLives');
     rev.style.display = 'none';
     restartBtnEl.classList.add('primary');
   } else {
-    title.textContent = 'Continue?';
+    title.textContent = t('continueQ');
     fh.innerHTML = ico('heart') + ico('heart') + ico('heart');
-    sub.textContent = 'Watch a short ad to revive with a full set of lives.';
+    sub.textContent = t('reviveSub');
     rev.style.display = '';
     restartBtnEl.classList.remove('primary');
   }
@@ -1693,12 +1823,18 @@ function renderHome() {
   buddyNameEl.textContent = cap(b.name);
 }
 
+const TROPHY_START = { y: 2026, m: 8 }; // September 2026 - nothing before the game exists
+function monthName(y, m) {
+  try { return new Intl.DateTimeFormat(save.lang || 'en', { month: 'long' }).format(new Date(y, m, 1)); }
+  catch (e) { return ['January','February','March','April','May','June','July','August','September','October','November','December'][m]; }
+}
+
 function renderCollection() {
   // records
   const recs = [
-    { icon: 'flame',  num: save.dayStreak || 0,     lbl: 'Longest streak' },
-    { icon: 'crown',  num: save.bestWinStreak || 0, lbl: 'Best win streak' },
-    { icon: 'medal',  num: save.totalWins || 0,     lbl: 'Total wins' },
+    { icon: 'flame',  num: save.dayStreak || 0,     lbl: t('longestStreak') },
+    { icon: 'crown',  num: save.bestWinStreak || 0, lbl: t('bestWinStreak') },
+    { icon: 'medal',  num: save.totalWins || 0,     lbl: t('totalWins') },
   ];
   document.getElementById('recordRow').innerHTML = recs.map(r =>
     `<div class="record-card"><div class="r-ico">${ico(r.icon)}</div><div class="r-num">${r.num}</div><div class="r-lbl">${r.lbl}</div></div>`
@@ -1706,36 +1842,43 @@ function renderCollection() {
 
   // awards
   document.getElementById('awardGrid').innerHTML = BADGE_DEFS.map(b => {
-    const [c, t] = b.prog(save);
-    const done = c >= t;
+    const [c, tgt] = b.prog(save);
+    const done = c >= tgt;
     const dot = (!done && c > 0) ? '<span class="dot"></span>' : '';
     return `<div class="award-cell ${done ? '' : 'locked'}" data-award="${b.id}">
       <div class="a-ico">${ico(b.icon)}</div>
       <div class="a-nm">${b.name}${dot}</div>
-      <div class="a-sub">${done ? 'Earned' : c + ' / ' + t}</div>
+      <div class="a-sub">${done ? t('earned') : c + ' / ' + tgt}</div>
     </div>`;
   }).join('');
   document.querySelectorAll('#awardGrid .award-cell').forEach(el =>
     el.addEventListener('click', () => openAward(el.dataset.award)));
 
-  // challenge trophies - one cup per month of the current year, "levels won this month"
+  // challenge trophies - one unique cup per month from Sept 2026 onward
   const now = new Date();
-  document.getElementById('trophyYear').textContent = now.getFullYear();
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const daysIn = (m) => new Date(now.getFullYear(), m + 1, 0).getDate();
+  const endY = now.getFullYear(), endM = Math.min(11, now.getMonth() + 3); // a few months ahead
   const monthWins = save.monthWins || {};
-  document.getElementById('trophyGrid').innerHTML = months.map((mn, i) => {
-    const key = now.getFullYear() + '-' + i;
-    const won = monthWins[key] || 0;
-    const goal = daysIn(i);
-    const done = won >= goal;
-    const future = i > now.getMonth();
-    return `<div class="trophy-cell ${done ? '' : 'locked'}">
-      <div class="t-ico">${ico('cup')}</div>
-      <div class="t-mo">${mn}</div>
-      <div class="t-pr">${future ? '-' : won + ' of ' + goal}</div>
-    </div>`;
-  }).join('');
+  const rows = {};
+  let y = TROPHY_START.y, m = TROPHY_START.m, idx = 0;
+  while (y < endY || (y === endY && m <= endM)) {
+    (rows[y] = rows[y] || []).push({ y, m, idx: idx++ });
+    m++; if (m > 11) { m = 0; y++; }
+  }
+  document.getElementById('trophyWrap').innerHTML = Object.keys(rows).map(yr =>
+    `<div class="trophy-year">${yr}</div><div class="trophy-grid">` + rows[yr].map(cell => {
+      const goal = new Date(cell.y, cell.m + 1, 0).getDate();
+      const won = monthWins[cell.y + '-' + cell.m] || 0;
+      const done = won >= goal;
+      const future = cell.y > now.getFullYear() || (cell.y === now.getFullYear() && cell.m > now.getMonth());
+      const bud = MB[cell.idx % MB.length];
+      const hue = (cell.idx * 47) % 360; // each cup a different tint
+      return `<div class="trophy-cell ${done ? '' : 'locked'}">
+        <div class="t-ico" style="color:hsl(${hue} 55% 55%)">${ico('cup')}<img class="t-bud" src="design/characters/buddies/${bud.name}.png" alt=""></div>
+        <div class="t-mo">${monthName(cell.y, cell.m)}</div>
+        <div class="t-pr">${future ? '-' : won + ' / ' + goal}</div>
+      </div>`;
+    }).join('') + `</div>`
+  ).join('');
 }
 
 // ---- award detail modal ----
@@ -1743,17 +1886,17 @@ const awardOverlay = document.getElementById('awardOverlay');
 function openAward(id) {
   const b = BADGE_DEFS.find(x => x.id === id);
   if (!b) return;
-  const [c, t] = b.prog(save);
-  const done = c >= t;
+  const [c, tgt] = b.prog(save);
+  const done = c >= tgt;
   document.getElementById('awardBig').innerHTML = ico(b.icon);
   document.getElementById('awardTitle').textContent = b.name;
-  document.getElementById('awardDesc').textContent = done ? b.desc + ' Earned!' : b.desc;
+  document.getElementById('awardDesc').textContent = done ? b.desc + ' ' + t('earned') + '!' : b.desc;
   const wrap = document.getElementById('awardBarWrap');
   if (done) { wrap.hidden = true; }
   else {
     wrap.hidden = false;
-    document.getElementById('awardBarFill').style.width = Math.round(100 * c / t) + '%';
-    document.getElementById('awardBarTxt').textContent = c + ' / ' + t;
+    document.getElementById('awardBarFill').style.width = Math.round(100 * c / tgt) + '%';
+    document.getElementById('awardBarTxt').textContent = c + ' / ' + tgt;
   }
   awardOverlay.hidden = false;
 }
@@ -1761,8 +1904,19 @@ awardOverlay.addEventListener('click', (e) => {
   if (e.target === awardOverlay || e.target.closest('[data-close-award]')) awardOverlay.hidden = true;
 });
 
+// ---- localisation apply ----
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  const lv = document.getElementById('langVal'); if (lv) lv.innerHTML = langLabel(save.lang) + ' ›';
+  setAccount(!!save.account); // refreshes accountVal text in the current language
+  document.documentElement.lang = save.lang || 'en';
+  renderHome();
+  if (document.getElementById('screen-collection').classList.contains('active')) renderCollection();
+  if (document.getElementById('screen-game').classList.contains('active') && !busy && levelData && levelData.chains.length)
+    setStatus(t('tapHint'), '');
+}
+
 // ---- settings sheets ----
-const LANGUAGES = ['English', 'Deutsch', 'francais', 'italiano', 'espanol', 'portugues (Brasil)', 'Turkce', 'polski', 'русский', 'Nederlands'];
 const sheetOverlay = document.getElementById('sheetOverlay');
 function openSheet(name) {
   sheetOverlay.querySelectorAll('.sheet-card').forEach(c => { c.hidden = c.dataset.sheet !== name; });
@@ -1771,13 +1925,13 @@ function openSheet(name) {
 }
 function closeSheet() { sheetOverlay.hidden = true; }
 function renderLangList() {
-  const cur = save.lang || 'English';
-  document.getElementById('langList').innerHTML = LANGUAGES.map(l =>
-    `<div class="lang ${l === cur ? 'sel' : ''}" data-lang="${l}">${l}<span class="chk">${ico('check')}</span></div>`
+  const cur = save.lang || 'en';
+  document.getElementById('langList').innerHTML = LANGS.map(l =>
+    `<div class="lang ${l.code === cur ? 'sel' : ''}" data-lang="${l.code}">${l.label}<span class="chk">${ico('check')}</span></div>`
   ).join('');
   document.querySelectorAll('#langList .lang').forEach(el => el.addEventListener('click', () => {
     save.lang = el.dataset.lang; persist();
-    document.getElementById('langVal').innerHTML = save.lang + ' ›';
+    applyLang();
     renderLangList();
   }));
 }
@@ -1791,13 +1945,12 @@ document.getElementById('rateLow').addEventListener('click', closeSheet);
 document.getElementById('signApple').addEventListener('click', () => { setAccount(true); closeSheet(); });
 document.getElementById('signGoogle').addEventListener('click', () => { setAccount(true); closeSheet(); });
 document.getElementById('raBuy').addEventListener('click', () => { save.noAds = true; persist(); closeSheet(); });
-['restoreRow', 'writeRow', 'privacyRow', 'termsRow'].forEach(id => {
-  const el = document.getElementById(id); if (el) el.addEventListener('click', () => {});
-});
+const restoreRow = document.getElementById('restoreRow');
+if (restoreRow) restoreRow.addEventListener('click', () => {}); // TODO: restore purchases
 function setAccount(on) {
   save.account = on; persist();
   const v = document.getElementById('accountVal');
-  if (v) v.innerHTML = (on ? 'On' : 'Off') + ' ›';
+  if (v) v.innerHTML = t(on ? 'on' : 'off') + ' ›';
 }
 
 // ---- settings ----
@@ -1820,8 +1973,7 @@ if (save.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
 
 // ---- boot ----
 paintIcons();
-document.getElementById('langVal').innerHTML = (save.lang || 'English') + ' ›';
-setAccount(!!save.account);
+applyLang();
 renderHome();
 </script>
 </body>

@@ -156,7 +156,9 @@
   #bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
   #bg[hidden] { display: none; }
   .screen { z-index: 1; }
-  #screen-home, #screen-collection, #screen-settings { background: transparent; }
+  #screen-home, #screen-collection { background: transparent; }
+  /* Settings is an opaque sheet - it must fully hide the home screen and its drifting buddies behind it */
+  #screen-settings { background: var(--bg); }
   #grid .hit { cursor: pointer; }
   #grid .hit:active + .arrowhead { opacity: 0.6; }
   .zoom-btns { position: absolute; right: 6px; bottom: 6px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
@@ -563,7 +565,8 @@ const ICO = {
   home: '<path d="M3 11.5 12 4l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   lock: '<path d="M6 10V8a6 6 0 1 1 12 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h8V8a4 4 0 0 0-8 0z"/>',
   trophy: '<path d="M6 4h12v3a4 4 0 0 1-3 3.87V13h2a1 1 0 0 1 0 2H7a1 1 0 0 1 0-2h2v-2.13A4 4 0 0 1 6 7zM4 5h1v1.7A2 2 0 0 1 4 5zm15 0h1a2 2 0 0 1-1 1.7zM8 18h8v2H8z"/>',
-  gear: '<path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5-2-1.5.4-2.4-2.2-1-1.5-1.9L12 5.7 9.8 5.2 8.3 7.1l-2.2 1L6.5 10.5 4.5 12l2 1.5-.4 2.4 2.2 1 1.5 1.9 2.2-.5 2.2.5 1.5-1.9 2.2-1-.4-2.4z"/>',
+  // standard nuvugames settings gear (Feather/Lucide, same markup MergeShot + SweetDefenders use)
+  gear: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></g>',
   globe: '<path fill="none" stroke="currentColor" stroke-width="2" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
   vib: '<rect x="8.5" y="4" width="7" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 9v6M20 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   sound: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
@@ -2046,7 +2049,7 @@ function showScreen(name) {
   document.getElementById('screen-' + name).classList.add('active');
   if (name === 'home') renderHome();
   if (name === 'collection') renderCollection();
-  try { BgSnakes.setActive(name !== 'game'); } catch (e) {}
+  try { BgSnakes.setActive(name !== 'game' && name !== 'settings'); } catch (e) {}
 }
 document.getElementById('openCollection').addEventListener('click', () => showScreen('collection'));
 document.getElementById('openSettings').addEventListener('click', () => showScreen('settings'));

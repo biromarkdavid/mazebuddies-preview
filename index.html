@@ -120,6 +120,11 @@
     100% { transform: scale(0.72) translateY(4px) rotate(-18deg); color: var(--grid-line); }
   }
   .level-tag { font-size: 13px; color: var(--sub); font-weight: 700; }
+  .diff-pill { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; margin-left: 2px; }
+  .diff-pill.easy { background: var(--accent-soft); color: var(--accent); }
+  .diff-pill.hard { background: #ffe1cf; color: #d9622a; }
+  :root:not([data-theme="light"]) .diff-pill.hard { background: #4a2a17; color: #ffb083; }
   .progress-bar { height: 4px; background: var(--grid-line); border-radius: 2px; margin: 12px 0 20px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s; }
   .ad-slot { flex: none; height: 52px; margin: -4px -20px 8px; background: var(--nav-bg);
@@ -334,6 +339,7 @@
       <button class="btn-round" id="restartBtn" title="Restart level">&#8635;</button>
       <div class="hearts" id="hearts"></div>
       <div class="level-tag" id="levelTag">Level 1</div>
+      <div class="diff-pill" id="diffPill"></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
     <div class="board-wrap">
@@ -564,7 +570,7 @@ const I18N = {
     enjoying:'Enjoying Maze Buddies?', rateBody:'Take a moment to rate the game! Thank you for your support.', stars14:'1-4 Stars', stars5:'5 Stars',
     connectAcc:'Connect Account', signInSave:'Sign in to save your level progress!', signApple:'Sign in with Apple', signGoogle:'Sign in with Google',
     termsAgree:'By signing up you agree to our Terms of Service', raB1:'No forced ads between levels', raB2:'Hint and life-refill ads stay available',
-    collection:'Collection', records:'Records', awards:'Awards', challengeTrophies:'Challenge Trophies', longestStreak:'Longest streak', bestWinStreak:'Best win streak', totalWins:'Total wins', earned:'Earned' },
+    collection:'Collection', records:'Records', awards:'Awards', challengeTrophies:'Challenge Trophies', longestStreak:'Longest streak', bestWinStreak:'Best win streak', totalWins:'Total wins', earned:'Earned', easy:'Easy', hard:'Hard' },
   de: { play:'Spielen', tapHint:'Tippe einen Buddy an, um ihn herauszuschieben.', blocked:'Blockiert - versuch einen anderen Buddy.', reshuffle:'Wird neu gemischt...', nice:'Super!',
     levelClear:'Level geschafft!', moves:'Zuge.', move:'Zug.', dayStreak:'Tage Serie', home:'Start', retry:'Nochmal', nextLevel:'Nachstes Level',
     continueQ:'Weiter?', levelFailed:'Level verloren', reviveSub:'Sieh dir eine kurze Werbung an, um mit einem Extra-Leben weiterzuspielen.', noLives:'Keine Leben mehr. Versuch dieses Level noch einmal.',
@@ -575,7 +581,7 @@ const I18N = {
     enjoying:'Gefallt dir Maze Buddies?', rateBody:'Nimm dir kurz Zeit, das Spiel zu bewerten. Danke fur deine Unterstutzung!', stars14:'1-4 Sterne', stars5:'5 Sterne',
     connectAcc:'Konto verbinden', signInSave:'Melde dich an, um deinen Fortschritt zu sichern!', signApple:'Mit Apple anmelden', signGoogle:'Mit Google anmelden',
     termsAgree:'Mit der Anmeldung akzeptierst du unsere Nutzungsbedingungen', raB1:'Keine Zwangswerbung zwischen Levels', raB2:'Tipp- und Leben-Werbung bleibt verfugbar',
-    collection:'Sammlung', records:'Rekorde', awards:'Auszeichnungen', challengeTrophies:'Challenge-Trophaen', longestStreak:'Langste Serie', bestWinStreak:'Beste Siegesserie', totalWins:'Siege gesamt', earned:'Erhalten' },
+    collection:'Sammlung', records:'Rekorde', awards:'Auszeichnungen', challengeTrophies:'Challenge-Trophaen', longestStreak:'Langste Serie', bestWinStreak:'Beste Siegesserie', totalWins:'Siege gesamt', earned:'Erhalten', easy:'Leicht', hard:'Schwer' },
   fr: { play:'Jouer', tapHint:'Touche un buddy pour le faire glisser.', blocked:'Bloque - essaie un autre buddy.', reshuffle:'On rebrasse celui-la...', nice:'Bravo !',
     levelClear:'Niveau termine !', moves:'coups.', move:'coup.', dayStreak:'jours de suite', home:'Accueil', retry:'Recommencer', nextLevel:'Niveau suivant',
     continueQ:'Continuer ?', levelFailed:'Niveau echoue', reviveSub:'Regarde une courte pub pour revivre avec une vie en plus.', noLives:'Plus de vies. Retente ce niveau.',
@@ -586,7 +592,7 @@ const I18N = {
     enjoying:'Tu aimes Maze Buddies ?', rateBody:'Prends un instant pour noter le jeu. Merci de ton soutien !', stars14:'1-4 etoiles', stars5:'5 etoiles',
     connectAcc:'Connecter le compte', signInSave:'Connecte-toi pour sauvegarder ta progression !', signApple:'Se connecter avec Apple', signGoogle:'Se connecter avec Google',
     termsAgree:"En t'inscrivant tu acceptes nos conditions d'utilisation", raB1:'Pas de pub forcee entre les niveaux', raB2:'Les pubs indice et vie restent disponibles',
-    collection:'Collection', records:'Records', awards:'Recompenses', challengeTrophies:'Trophees de defi', longestStreak:'Plus longue serie', bestWinStreak:'Meilleure serie de victoires', totalWins:'Victoires totales', earned:'Obtenu' },
+    collection:'Collection', records:'Records', awards:'Recompenses', challengeTrophies:'Trophees de defi', longestStreak:'Plus longue serie', bestWinStreak:'Meilleure serie de victoires', totalWins:'Victoires totales', earned:'Obtenu', easy:'Facile', hard:'Difficile' },
   es: { play:'Jugar', tapHint:'Toca un buddy para deslizarlo.', blocked:'Bloqueado - prueba con otro buddy.', reshuffle:'Rebarajando este...', nice:'Bien!',
     levelClear:'Nivel superado!', moves:'movimientos.', move:'movimiento.', dayStreak:'dias seguidos', home:'Inicio', retry:'Reintentar', nextLevel:'Siguiente nivel',
     continueQ:'Continuar?', levelFailed:'Nivel fallido', reviveSub:'Mira un anuncio corto para revivir con una vida extra.', noLives:'Sin vidas. Intenta este nivel otra vez.',
@@ -597,7 +603,7 @@ const I18N = {
     enjoying:'Te gusta Maze Buddies?', rateBody:'Toma un momento para valorar el juego. Gracias por tu apoyo!', stars14:'1-4 estrellas', stars5:'5 estrellas',
     connectAcc:'Conectar cuenta', signInSave:'Inicia sesion para guardar tu progreso!', signApple:'Iniciar sesion con Apple', signGoogle:'Iniciar sesion con Google',
     termsAgree:'Al registrarte aceptas nuestros terminos del servicio', raB1:'Sin anuncios forzados entre niveles', raB2:'Los anuncios de pista y vida siguen disponibles',
-    collection:'Coleccion', records:'Records', awards:'Premios', challengeTrophies:'Trofeos de desafio', longestStreak:'Racha mas larga', bestWinStreak:'Mejor racha de victorias', totalWins:'Victorias totales', earned:'Conseguido' },
+    collection:'Coleccion', records:'Records', awards:'Premios', challengeTrophies:'Trofeos de desafio', longestStreak:'Racha mas larga', bestWinStreak:'Mejor racha de victorias', totalWins:'Victorias totales', earned:'Conseguido', easy:'Facil', hard:'Dificil' },
   it: { play:'Gioca', tapHint:'Tocca un buddy per farlo scivolare.', blocked:'Bloccato - prova un altro buddy.', reshuffle:'Rimescolo questo...', nice:'Bravo!',
     levelClear:'Livello completato!', moves:'mosse.', move:'mossa.', dayStreak:'giorni di fila', home:'Home', retry:'Riprova', nextLevel:'Livello successivo',
     continueQ:'Continuare?', levelFailed:'Livello fallito', reviveSub:'Guarda un breve annuncio per rivivere con una vita extra.', noLives:'Vite finite. Riprova questo livello.',
@@ -608,7 +614,7 @@ const I18N = {
     enjoying:'Ti piace Maze Buddies?', rateBody:'Prenditi un momento per valutare il gioco. Grazie del supporto!', stars14:'1-4 stelle', stars5:'5 stelle',
     connectAcc:'Connetti account', signInSave:'Accedi per salvare i tuoi progressi!', signApple:'Accedi con Apple', signGoogle:'Accedi con Google',
     termsAgree:'Registrandoti accetti i nostri termini di servizio', raB1:'Niente pubblicita forzate tra i livelli', raB2:'Restano le pubblicita per aiuti e vite',
-    collection:'Collezione', records:'Record', awards:'Premi', challengeTrophies:'Trofei sfida', longestStreak:'Serie piu lunga', bestWinStreak:'Miglior serie di vittorie', totalWins:'Vittorie totali', earned:'Ottenuto' },
+    collection:'Collezione', records:'Record', awards:'Premi', challengeTrophies:'Trofei sfida', longestStreak:'Serie piu lunga', bestWinStreak:'Miglior serie di vittorie', totalWins:'Vittorie totali', earned:'Ottenuto', easy:'Facile', hard:'Difficile' },
   pt: { play:'Jogar', tapHint:'Toca num buddy para o deslizar.', blocked:'Bloqueado - tenta outro buddy.', reshuffle:'A baralhar este...', nice:'Boa!',
     levelClear:'Nivel concluido!', moves:'jogadas.', move:'jogada.', dayStreak:'dias seguidos', home:'Inicio', retry:'Repetir', nextLevel:'Proximo nivel',
     continueQ:'Continuar?', levelFailed:'Nivel falhado', reviveSub:'Ve um anuncio curto para reviver com uma vida extra.', noLives:'Sem vidas. Tenta este nivel de novo.',
@@ -619,7 +625,7 @@ const I18N = {
     enjoying:'Estas a gostar de Maze Buddies?', rateBody:'Reserva um momento para avaliar o jogo. Obrigado pelo apoio!', stars14:'1-4 estrelas', stars5:'5 estrelas',
     connectAcc:'Ligar conta', signInSave:'Inicia sessao para guardar o teu progresso!', signApple:'Iniciar sessao com Apple', signGoogle:'Iniciar sessao com Google',
     termsAgree:'Ao registares-te aceitas os nossos termos de servico', raB1:'Sem anuncios forcados entre niveis', raB2:'Os anuncios de dica e vida continuam disponiveis',
-    collection:'Colecao', records:'Recordes', awards:'Premios', challengeTrophies:'Trofeus de desafio', longestStreak:'Sequencia mais longa', bestWinStreak:'Melhor sequencia de vitorias', totalWins:'Vitorias totais', earned:'Conquistado' },
+    collection:'Colecao', records:'Recordes', awards:'Premios', challengeTrophies:'Trofeus de desafio', longestStreak:'Sequencia mais longa', bestWinStreak:'Melhor sequencia de vitorias', totalWins:'Vitorias totais', earned:'Conquistado', easy:'Facil', hard:'Dificil' },
   nl: { play:'Spelen', tapHint:'Tik op een buddy om hem eruit te schuiven.', blocked:'Geblokkeerd - probeer een andere buddy.', reshuffle:'Deze wordt opnieuw geschud...', nice:'Top!',
     levelClear:'Level gehaald!', moves:'zetten.', move:'zet.', dayStreak:'dagen op rij', home:'Home', retry:'Opnieuw', nextLevel:'Volgend level',
     continueQ:'Doorgaan?', levelFailed:'Level mislukt', reviveSub:'Bekijk een korte advertentie om verder te spelen met een extra leven.', noLives:'Geen levens meer. Probeer dit level opnieuw.',
@@ -630,7 +636,7 @@ const I18N = {
     enjoying:'Vind je Maze Buddies leuk?', rateBody:'Neem even de tijd om het spel te beoordelen. Bedankt voor je steun!', stars14:'1-4 sterren', stars5:'5 sterren',
     connectAcc:'Account koppelen', signInSave:'Log in om je voortgang op te slaan!', signApple:'Inloggen met Apple', signGoogle:'Inloggen met Google',
     termsAgree:'Door je aan te melden ga je akkoord met onze servicevoorwaarden', raB1:'Geen gedwongen advertenties tussen levels', raB2:'Hint- en levenadvertenties blijven beschikbaar',
-    collection:'Collectie', records:'Records', awards:'Prijzen', challengeTrophies:'Challenge-trofeeen', longestStreak:'Langste reeks', bestWinStreak:'Beste winreeks', totalWins:'Totale overwinningen', earned:'Behaald' },
+    collection:'Collectie', records:'Records', awards:'Prijzen', challengeTrophies:'Challenge-trofeeen', longestStreak:'Langste reeks', bestWinStreak:'Beste winreeks', totalWins:'Totale overwinningen', earned:'Behaald', easy:'Makkelijk', hard:'Moeilijk' },
   pl: { play:'Graj', tapHint:'Dotknij buddy, aby go wysunac.', blocked:'Zablokowane - sprobuj innego buddy.', reshuffle:'Tasujemy ten poziom...', nice:'Brawo!',
     levelClear:'Poziom ukonczony!', moves:'ruchow.', move:'ruch.', dayStreak:'dni z rzedu', home:'Ekran glowny', retry:'Ponow', nextLevel:'Nastepny poziom',
     continueQ:'Kontynuowac?', levelFailed:'Poziom przegrany', reviveSub:'Obejrzyj krotka reklame, aby wrocic z dodatkowym zyciem.', noLives:'Brak zyc. Sprobuj ten poziom jeszcze raz.',
@@ -641,7 +647,7 @@ const I18N = {
     enjoying:'Podoba Ci sie Maze Buddies?', rateBody:'Poswiec chwile na ocene gry. Dziekujemy za wsparcie!', stars14:'1-4 gwiazdki', stars5:'5 gwiazdek',
     connectAcc:'Polacz konto', signInSave:'Zaloguj sie, aby zapisac postep!', signApple:'Zaloguj przez Apple', signGoogle:'Zaloguj przez Google',
     termsAgree:'Rejestrujac sie akceptujesz nasze warunki uslugi', raB1:'Brak wymuszonych reklam miedzy poziomami', raB2:'Reklamy za podpowiedzi i zycia pozostaja dostepne',
-    collection:'Kolekcja', records:'Rekordy', awards:'Nagrody', challengeTrophies:'Trofea wyzwan', longestStreak:'Najdluzsza seria', bestWinStreak:'Najlepsza seria zwyciestw', totalWins:'Wygrane lacznie', earned:'Zdobyto' },
+    collection:'Kolekcja', records:'Rekordy', awards:'Nagrody', challengeTrophies:'Trofea wyzwan', longestStreak:'Najdluzsza seria', bestWinStreak:'Najlepsza seria zwyciestw', totalWins:'Wygrane lacznie', earned:'Zdobyto', easy:'Latwy', hard:'Trudny' },
   tr: { play:'Oyna', tapHint:'Kaydirmak icin bir buddyye dokun.', blocked:'Engellendi - baska bir buddy dene.', reshuffle:'Bu bolum yeniden karistiriliyor...', nice:'Guzel!',
     levelClear:'Bolum tamam!', moves:'hamle.', move:'hamle.', dayStreak:'gun seri', home:'Ana sayfa', retry:'Tekrar', nextLevel:'Sonraki bolum',
     continueQ:'Devam?', levelFailed:'Bolum basarisiz', reviveSub:'Ekstra canla devam etmek icin kisa bir reklam izle.', noLives:'Can kalmadi. Bu bolumu tekrar dene.',
@@ -652,7 +658,7 @@ const I18N = {
     enjoying:'Maze Buddiesi seviyor musun?', rateBody:'Oyunu degerlendirmek icin biraz zaman ayir. Destegin icin tesekkurler!', stars14:'1-4 Yildiz', stars5:'5 Yildiz',
     connectAcc:'Hesabi bagla', signInSave:'Ilerlemeni kaydetmek icin giris yap!', signApple:'Apple ile giris yap', signGoogle:'Google ile giris yap',
     termsAgree:'Kaydolarak hizmet sartlarimizi kabul edersin', raB1:'Bolumler arasi zorunlu reklam yok', raB2:'Ipucu ve can reklamlari acik kalir',
-    collection:'Koleksiyon', records:'Rekorlar', awards:'Oduller', challengeTrophies:'Meydan okuma kupalari', longestStreak:'En uzun seri', bestWinStreak:'En iyi galibiyet serisi', totalWins:'Toplam galibiyet', earned:'Kazanildi' },
+    collection:'Koleksiyon', records:'Rekorlar', awards:'Oduller', challengeTrophies:'Meydan okuma kupalari', longestStreak:'En uzun seri', bestWinStreak:'En iyi galibiyet serisi', totalWins:'Toplam galibiyet', earned:'Kazanildi', easy:'Kolay', hard:'Zor' },
   ru: { play:'Играть', tapHint:'Коснитесь зверька, чтобы вывести его.', blocked:'Заблокировано - попробуйте другого.', reshuffle:'Перемешиваем этот уровень...', nice:'Отлично!',
     levelClear:'Уровень пройден!', moves:'ходов.', move:'ход.', dayStreak:'дней подряд', home:'Домой', retry:'Заново', nextLevel:'Следующий уровень',
     continueQ:'Продолжить?', levelFailed:'Уровень проигран', reviveSub:'Посмотрите короткую рекламу, чтобы продолжить с доп. жизнью.', noLives:'Жизней нет. Попробуйте этот уровень снова.',
@@ -663,7 +669,7 @@ const I18N = {
     enjoying:'Нравится Maze Buddies?', rateBody:'Уделите минуту, чтобы оценить игру. Спасибо за поддержку!', stars14:'1-4 звезды', stars5:'5 звёзд',
     connectAcc:'Подключить аккаунт', signInSave:'Войдите, чтобы сохранить прогресс!', signApple:'Войти через Apple', signGoogle:'Войти через Google',
     termsAgree:'Регистрируясь, вы принимаете условия использования', raB1:'Нет принудительной рекламы между уровнями', raB2:'Реклама за подсказки и жизни остаётся',
-    collection:'Коллекция', records:'Рекорды', awards:'Награды', challengeTrophies:'Трофеи испытаний', longestStreak:'Самая длинная серия', bestWinStreak:'Лучшая серия побед', totalWins:'Всего побед', earned:'Получено' },
+    collection:'Коллекция', records:'Рекорды', awards:'Награды', challengeTrophies:'Трофеи испытаний', longestStreak:'Самая длинная серия', bestWinStreak:'Лучшая серия побед', totalWins:'Всего побед', earned:'Получено', easy:'Легко', hard:'Сложно' },
 };
 function t(key) {
   const l = I18N[save && save.lang] || I18N.en;
@@ -701,14 +707,30 @@ const DIRS = {
 const DIR_KEYS = ['U', 'D', 'L', 'R'];
 
 // ---- difficulty tiers: grid resolution grows, shape stays recognizable ----
-function tierFor(levelIndex) {
-  const n = levelIndex + 1; // 1-based level number
-  if (n <= 3)  return { size: 13 }; // big enough that the silhouette reads even on level 1
-  if (n <= 8)  return { size: 15 };
-  if (n <= 16) return { size: 17 };
-  if (n <= 30) return { size: 19 };
-  if (n <= 50) return { size: 21 };
-  return         { size: 23 };
+// Difficulty template (Mark): levels alternate easy / hard. Easy stays a quick
+// breather; hard scales up - bigger grid, denser fill, shorter (=more, windier)
+// chains - but capped so even a late hard level is a 1-2 minute solve.
+function difficultyFor(levelIndex) {
+  const hard = levelIndex % 2 === 1;
+  const ramp = Math.floor(levelIndex / 2); // how many hard levels deep
+  if (hard) {
+    return {
+      hard: true,
+      size: Math.min(21, 13 + ramp),
+      fill: Math.min(0.92, 0.78 + ramp * 0.012),
+      maxLen: Math.max(7, 12 - Math.floor(ramp / 5)),
+      straightBias: Math.max(0.42, 0.6 - ramp * 0.01), // lower = windier chains
+      chainCap: 22,
+    };
+  }
+  return {
+    hard: false,
+    size: Math.min(14, 11 + Math.floor(ramp / 5)),
+    fill: 0.48,        // sparse - a quick breather
+    maxLen: 18,        // long chains -> few buddies
+    straightBias: 0.8, // mostly straight
+    chainCap: 9,
+  };
 }
 
 // ---- silhouette shapes: the whole maze is packed to fill one of these outlines ----
@@ -801,7 +823,8 @@ function buildMask(shapeName, rows, cols) {
 // that are cleared earlier, so they never block chain k. We prefer a head that
 // continues the chain's own last step (no arrow turning on its own square) and
 // only fall back to a turned head when nothing straight is open.
-function carvePaths(mask, rows, cols, rng, minLen, maxLen, fillFrac) {
+function carvePaths(mask, rows, cols, rng, minLen, maxLen, fillFrac, straightBias) {
+  const STRAIGHT = straightBias || 0.62; // higher -> straighter chains, lower -> windier
   const key = (r, c) => r * cols + c;
   const free = new Set();
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (mask[r][c]) free.add(key(r, c));
@@ -863,7 +886,7 @@ function carvePaths(mask, rows, cols, rng, minLen, maxLen, fillFrac) {
         if (!opts.length) break;
         // once long enough, stop the moment the current heading has a clean straight exit
         if (path.length >= minLen && lastDir && rayClearsBuilt(r, c, lastDir) && rng() < 0.5) break;
-        let next = (lastDir && rng() < 0.66) ? opts.find(o => o.d === lastDir) : null;
+        let next = (lastDir && rng() < STRAIGHT) ? opts.find(o => o.d === lastDir) : null;
         if (!next) { shuffle(opts, rng); next = opts[0]; }
         lastDir = next.d; r = next.nr; c = next.nc;
         path.push({ r, c });
@@ -1053,24 +1076,49 @@ function verifyPeelable(chains, rows, cols) {
   return present.size === 0;
 }
 
+// generateLevel is the expensive search; its result is deterministic per level,
+// so cache the recipe and hand out a fresh deep copy each play (buildBoard
+// mutates the chains as they slide out).
+const _levelCache = {};
+function cloneLevel(l) {
+  return {
+    rows: l.rows, cols: l.cols, shape: l.shape, difficulty: l.difficulty, chainCount: l.chainCount,
+    shapeCells: l.shapeCells ? l.shapeCells.map(c => ({ r: c.r, c: c.c })) : [],
+    chains: l.chains.map(ch => ({
+      img: ch.img, color: ch.color, dark: ch.dark, treat: ch.treat, turnedHead: ch.turnedHead,
+      cells: ch.cells.map(c => ({ r: c.r, c: c.c, dir: c.dir })),
+    })),
+  };
+}
 function generateLevel(levelIndex) {
-  const tier = tierFor(levelIndex);
-  const rows = tier.size, cols = tier.size;
+  if (!_levelCache[levelIndex]) _levelCache[levelIndex] = _generateLevel(levelIndex);
+  return cloneLevel(_levelCache[levelIndex]);
+}
+function prewarmLevel(levelIndex) {
+  if (!_levelCache[levelIndex]) {
+    try { _levelCache[levelIndex] = _generateLevel(levelIndex); } catch (e) {}
+  }
+}
+function _generateLevel(levelIndex) {
+  const diff = difficultyFor(levelIndex);
+  const rows = diff.size, cols = diff.size;
   const shapeName = SHAPE_NAMES[levelIndex % SHAPE_NAMES.length];
 
   const MIN_CHAIN = 4; // shorter than this and the buddy overlaps its own arrow
-  const FILL = 0.88;   // pack the chains so the silhouette reads from the trails themselves
   const mask = buildMask(shapeName, rows, cols);
   const shapeCells = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (mask[r][c]) shapeCells.push({ r, c });
+  const stamp = (o) => Object.assign(o, { difficulty: diff.hard ? 'hard' : 'easy', shapeCells });
 
   let chosen = null, best = null, bestScore = Infinity;
-  for (let attempt = 0; attempt < 16; attempt++) {
+  for (let attempt = 0; attempt < 12; attempt++) {
     const rng = mulberry32(1000 + levelIndex * 7919 + attempt * 104729);
-    const maxLen = 11 + Math.floor(levelIndex / 6);
-    const raw = carvePaths(mask, rows, cols, rng, MIN_CHAIN, maxLen, FILL);
+    // if early passes overshoot the chain cap, force longer chains (=fewer)
+    const maxLen = diff.maxLen + (attempt >= 6 ? 4 : 0) + (attempt >= 11 ? 4 : 0);
+    const raw = carvePaths(mask, rows, cols, rng, MIN_CHAIN, maxLen, diff.fill, diff.straightBias);
     const kept = raw.filter(p => p.length >= MIN_CHAIN);
     if (kept.length < 3) continue;
+    if (kept.length > diff.chainCap && attempt < 7) continue; // try for fewer chains first
 
     const kinds = CHAIN_KINDS.slice();
     shuffle(kinds, rng);
@@ -1082,8 +1130,8 @@ function generateLevel(levelIndex) {
     if (!verifyPeelable(chains, rows, cols)) continue; // guaranteed by carve, but double-check
 
     const turned = chains.reduce((n, ch) => n + (ch.turnedHead ? 1 : 0), 0);
-    if (turned === 0) { chosen = { rows, cols, chains, chainCount: chains.length, shape: shapeName, shapeCells }; break; }
-    if (turned < bestScore) { bestScore = turned; best = { rows, cols, chains, chainCount: chains.length, shape: shapeName, shapeCells }; }
+    if (turned === 0) { chosen = stamp({ rows, cols, chains, chainCount: chains.length, shape: shapeName }); break; }
+    if (turned < bestScore) { bestScore = turned; best = stamp({ rows, cols, chains, chainCount: chains.length, shape: shapeName }); }
   }
   if (!chosen && best) chosen = best; // fewest turned heads wins
   if (!chosen) {
@@ -1285,6 +1333,12 @@ function buildBoard() {
   nextBtn.style.display = 'none';
   nextBtn.innerHTML = 'Next level &rarr;';
   levelTagEl.textContent = t('level') + ' ' + (currentLevel + 1);
+  const dp = document.getElementById('diffPill');
+  if (dp) {
+    const hard = levelData.difficulty === 'hard';
+    dp.textContent = t(hard ? 'hard' : 'easy');
+    dp.className = 'diff-pill ' + (hard ? 'hard' : 'easy');
+  }
   progressFill.style.width = Math.min(100, ((currentLevel % 10) / 10) * 100) + '%';
   heartsEl.style.display = 'flex';
   renderHearts();
@@ -1300,6 +1354,8 @@ function buildBoard() {
   renderBoard();
   resetView();
   setStatus(t('tapHint'), '');
+  // build the next level in idle time so its ~0.5s search never freezes a transition
+  setTimeout(function () { prewarmLevel(currentLevel + 1); }, 400);
 }
 
 let boardW = 0, boardH = 0, boardPad = 0, lineW = 12, moves = 0;

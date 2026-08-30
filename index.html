@@ -105,17 +105,27 @@
     font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none;
   }
   .hearts { display: flex; gap: 5px; font-size: 22px; }
-  .heart { color: #ff4d5e; line-height: 0; }
+  .heart { color: #ff4d5e; line-height: 0; display: inline-flex; transform-origin: 50% 50%; }
   .heart.lost { color: var(--grid-line); }
+  .heart.breaking { animation: heartBreak 0.6s ease forwards; }
+  @keyframes heartBreak {
+    0% { transform: scale(1) rotate(0); color: #ff4d5e; }
+    12% { transform: scale(1.25) rotate(-6deg); }
+    24% { transform: scale(1.1) rotate(7deg); }
+    36% { transform: scale(1.18) rotate(-5deg); }
+    55% { transform: scale(1) rotate(0); color: #ff4d5e; }
+    72% { transform: scale(1.05) translateX(-3px) rotate(-12deg); }
+    100% { transform: scale(0.72) translateY(4px) rotate(-18deg); color: var(--grid-line); }
+  }
   .level-tag { font-size: 13px; color: var(--sub); font-weight: 700; }
   .progress-bar { height: 4px; background: var(--grid-line); border-radius: 2px; margin: 12px 0 20px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s; }
+  .ad-slot { flex: none; height: 52px; margin: -4px -20px 8px; background: var(--nav-bg);
+    border-bottom: 1px solid var(--grid-line); display: flex; align-items: center; justify-content: center; }
+  .ad-slot span { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--sub); opacity: .6; }
   .board-wrap { flex: 1; display: flex; align-items: center; justify-content: center;
     position: relative; overflow: hidden; touch-action: none; }
   #grid { display: block; transform-origin: 0 0; will-change: transform; }
-  #grid .shape-cell { fill: #c7cef2; }
-  :root:not([data-theme="light"]) #grid .shape-cell { fill: #2c3160; }
-  [data-theme="dark"] #grid .shape-cell { fill: #2c3160; }
   #grid .hit { cursor: pointer; }
   #grid .hit:active + .arrowhead { opacity: 0.6; }
   .zoom-btns { position: absolute; right: 6px; bottom: 6px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
@@ -228,6 +238,7 @@
 
   <!-- GAME -->
   <section class="screen" id="screen-game">
+    <div class="ad-slot" id="adSlot"><span>Ad</span></div>
     <div class="game-topbar">
       <button class="btn-round" id="backBtn">&#9664;</button>
       <button class="btn-round" id="restartBtn" title="Restart level">&#8635;</button>
@@ -314,6 +325,17 @@
         <button id="winHome"><span class="wi" data-ico="home"></span>Home</button>
         <button id="winRetry"><span class="wi" data-ico="retry"></span>Retry</button>
         <button id="winNext" class="primary"><span class="wi" data-ico="next"></span>Next</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="win-overlay" id="failOverlay" hidden>
+    <div class="win-card">
+      <div class="win-title">Out of hearts</div>
+      <div class="win-sub">This level got the better of you.</div>
+      <div class="win-btns">
+        <button id="failHome"><span class="wi" data-ico="home"></span>Home</button>
+        <button id="failRetry" class="primary"><span class="wi" data-ico="retry"></span>Retry</button>
       </div>
     </div>
   </div>
@@ -743,7 +765,7 @@ function generateLevel(levelIndex) {
   const shapeName = SHAPE_NAMES[levelIndex % SHAPE_NAMES.length];
 
   const MIN_CHAIN = 4; // shorter than this and the buddy overlaps its own arrow
-  const FILL = 0.74;   // leave breathing room so heads get straight exits and the board stays solvable
+  const FILL = 0.88;   // pack the chains so the silhouette reads from the trails themselves
   const mask = buildMask(shapeName, rows, cols);
   const shapeCells = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (mask[r][c]) shapeCells.push({ r, c });
@@ -904,7 +926,7 @@ function chainParts(chain, positions) {
   const hp = pt(positions[n - 1].r, positions[n - 1].c); // head  -> forward arrow
   return {
     d,
-    deco: trailTreats(chain, positions) + buddyImageSVG(chain.img, tp.x, tp.y) + fwdArrow(hp.x, hp.y, hdir, chain.dark),
+    deco: trailTreats(chain, positions) + buddyImageSVG(chain.img, tp.x, tp.y) + fwdArrow(hp.x, hp.y, hdir, chain.color),
   };
 }
 
@@ -928,25 +950,27 @@ function buddyImageSVG(url, x, y) {
     width="${s.toFixed(1)}" height="${s.toFixed(1)}" preserveAspectRatio="xMidYMid meet"/>`;
 }
 
-// sharp forward-pointing chevron at the head of a chain - a notched arrowhead so
-// the travel direction reads unmistakably (Mark: make the point more conspicuous)
+// the chain's head: a solid triangle in the trail's own colour, overlapping the
+// line end so it reads as the line pointing and terminating - no border, no
+// second colour (Mark: it must be one continuous shape with the trail)
 function fwdArrow(x, y, dir, color) {
   const rot = { R: 0, D: 90, L: 180, U: 270 }[dir] || 0;
-  const L = cellSize * 0.92;      // tip-to-back length (longer than wide = pointy)
-  const w = cellSize * 0.34;      // half-width at the wings
-  const pts = [
-    [ L * 0.5, 0 ],              // tip
-    [ -L * 0.5, -w ],            // top wing
-    [ -L * 0.22, 0 ],           // back notch
-    [ -L * 0.5, w ],            // bottom wing
-  ].map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-  return `<polygon points="${pts}"
-    fill="${color}" stroke="#ffffff" stroke-width="${(cellSize * 0.09).toFixed(1)}" stroke-linejoin="round"
+  const L = cellSize * 0.78;     // tip-to-base length
+  const w = cellSize * 0.38;     // half-base - a touch wider than the trail so it flares
+  const back = -L * 0.42;        // base sits behind the head centre, over the rounded line cap
+  const pts = `${(L * 0.58).toFixed(1)},0 ${back.toFixed(1)},${(-w).toFixed(1)} ${back.toFixed(1)},${w.toFixed(1)}`;
+  return `<polygon points="${pts}" fill="${color}" stroke="${color}" stroke-width="1" stroke-linejoin="round"
     transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${rot})"/>`;
 }
 
+const animating = new Set(); // chains mid-slide-out; several can run at once
+
 function buildBoard() {
   levelData = generateLevel(currentLevel);
+  levelData.chains.forEach((ch, i) => { ch.uid = i; });
+  animating.clear();
+  busy = false;
+  if (typeof hideFailOverlay === 'function') hideFailOverlay();
   hearts = 3;
   lostAnyHeart = false;
   levelFailed = false;
@@ -1052,37 +1076,31 @@ boardWrap.addEventListener('click', (e) => {
 }, true);
 
 // draw a single chain: coloured trail + bold tail arrow + buddy face at the head
-function chainSVG(chain, idx) {
+function chainSVG(chain) {
   const parts = chainParts(chain, chain.cells);
-  return `<g class="chain" data-idx="${idx}">
-    <path id="chain-path-${idx}" d="${parts.d}" fill="none" stroke="${chain.color}"
+  return `<g class="chain" data-uid="${chain.uid}">
+    <path id="chain-path-${chain.uid}" d="${parts.d}" fill="none" stroke="${chain.color}"
       stroke-width="${lineW}" stroke-linecap="round" stroke-linejoin="round"/>
-    <g id="chain-deco-${idx}">${parts.deco}</g>
+    <g id="chain-deco-${chain.uid}">${parts.deco}</g>
   </g>`;
 }
 
 function renderBoard() {
-  let groups = '', hits = '', shape = '';
-  // solid silhouette behind the maze so every level reads as its shape (heart, house, ...)
-  const pitch = cellSize + gap;
-  for (const cell of (levelData.shapeCells || [])) {
-    const p = pt(cell.r, cell.c);
-    shape += `<rect x="${(p.x - pitch / 2).toFixed(1)}" y="${(p.y - pitch / 2).toFixed(1)}" width="${pitch.toFixed(1)}" height="${pitch.toFixed(1)}" class="shape-cell"/>`;
-  }
-  levelData.chains.forEach((chain, idx) => {
-    groups += chainSVG(chain, idx);
+  let groups = '', hits = '';
+  // chains still on the board plus any that are mid-slide-out (kept so their animation survives a re-render)
+  for (const chain of levelData.chains.concat([...animating])) groups += chainSVG(chain);
+  levelData.chains.forEach((chain) => {
     for (const cell of chain.cells) {
       const p = pt(cell.r, cell.c);
-      hits += `<rect class="hit" data-idx="${idx}" x="${p.x - cellSize / 2}" y="${p.y - cellSize / 2}" width="${cellSize}" height="${cellSize}" fill="transparent"/>`;
+      hits += `<rect class="hit" data-uid="${chain.uid}" x="${p.x - cellSize / 2}" y="${p.y - cellSize / 2}" width="${cellSize}" height="${cellSize}" fill="transparent"/>`;
     }
   });
   gridEl.innerHTML = `<svg viewBox="0 0 ${boardW} ${boardH}" width="${boardW}" height="${boardH}" style="overflow:visible">
-    <g id="shape">${shape}</g>
     <g id="chains">${groups}</g>
     <g id="hits">${hits}</g>
   </svg>`;
   gridEl.querySelectorAll('.hit').forEach(el => {
-    el.addEventListener('click', () => onTap(Number(el.dataset.idx)));
+    el.addEventListener('click', () => onTap(Number(el.dataset.uid)));
   });
 }
 
@@ -1119,47 +1137,101 @@ function rayIsClear(chain) {
   return true;
 }
 
-async function onTap(idx) {
-  if (busy || levelFailed) return;
-  const chain = levelData.chains[idx];
-  if (!chain) return;
-  busy = true;
+const CELLS_PER_MS = 1 / 38; // constant slide speed for every chain (rAF-interpolated, smooth)
 
-  if (!rayIsClear(chain)) {
-    await shakeChain(idx);
-    hearts = Math.max(0, hearts - 1);
-    lostAnyHeart = true;
-    renderHearts();
+async function onTap(uid) {
+  if (levelFailed) return;
+  const chain = levelData.chains.find(c => c.uid === uid);
+  if (!chain || animating.has(chain)) return; // gone, or already sliding
+
+  // pull it off the live board immediately so other buddies can be tapped in parallel
+  const i = levelData.chains.indexOf(chain);
+  const blocked = !rayIsClear(chain);
+  levelData.chains.splice(i, 1);
+  animating.add(chain);
+  renderBoard();
+
+  if (blocked) {
     vibrate(40);
-    if (hearts === 0) {
-      levelFailed = true;
-      setStatus('Out of hearts! Tap Retry.', 'fail');
-      nextBtn.innerHTML = 'Retry level &#8635;';
-      nextBtn.style.display = 'inline-block';
-    } else {
-      setStatus('Blocked - try another buddy.', 'fail');
-    }
-    busy = false;
+    await slideChainBlocked(chain); // lurch to the wall, crawl back
+    animating.delete(chain);
+    levelData.chains.push(chain);
+    levelData.chains.sort((a, b) => a.uid - b.uid);
+    renderBoard();
+    loseHeart();
     return;
   }
 
   moves++;
   vibrate(20);
-  await slideChainOut(chain, idx);
-  levelData.chains.splice(idx, 1);
+  await slideChainOut(chain);
+  animating.delete(chain);
   renderBoard();
 
-  if (levelData.chains.length === 0) {
+  if (levelData.chains.length === 0 && animating.size === 0 && !levelFailed) {
     await win();
-    return; // busy stays true until the win overlay is dismissed
+  } else if (!levelFailed) {
+    setStatus('', '');
   }
-  setStatus('Nice!', 'win');
-  busy = false;
+}
+
+function loseHeart() {
+  hearts = Math.max(0, hearts - 1);
+  lostAnyHeart = true;
+  renderHearts();
+  vibrate(40);
+  const spans = heartsEl.querySelectorAll('.heart');
+  const broke = spans[hearts]; // the heart that just went dark
+  if (broke) {
+    broke.classList.add('breaking');
+    setTimeout(() => broke.classList.remove('breaking'), 650);
+  }
+  if (hearts === 0) {
+    levelFailed = true;
+    setStatus('', '');
+    setTimeout(showFailOverlay, 450); // let the heart-break read first
+  } else {
+    setStatus('Blocked - try another buddy.', 'fail');
+  }
+}
+
+// wrong tap: the whole chain lunges forward until its head meets the wall, then recoils back
+async function slideChainBlocked(chain) {
+  const head = chain.cells[chain.cells.length - 1];
+  const d = DIRS[head.dir];
+  const occ = new Set();
+  for (const o of levelData.chains) for (const cell of o.cells) occ.add(cell.r + ',' + cell.c);
+  let k = 0, r = head.r + d.dr, c = head.c + d.dc;
+  while (k < 40) {
+    if (r < 0 || r >= levelData.rows || c < 0 || c >= levelData.cols) break;
+    if (occ.has(r + ',' + c)) break;
+    k++; r += d.dr; c += d.dc;
+  }
+  k = Math.max(1, k);
+  const body = chain.cells.map(cell => ({ r: cell.r, c: cell.c }));
+  const pathEl = document.getElementById('chain-path-' + chain.uid);
+  const decoEl = document.getElementById('chain-deco-' + chain.uid);
+  await new Promise((resolve) => {
+    let start = 0;
+    const dur = k / CELLS_PER_MS; // out
+    const frame = (now) => {
+      if (!start) start = now;
+      const e = now - start;
+      const tri = e < dur ? (e / dur) : Math.max(0, 2 - e / dur); // 0 -> 1 -> 0
+      const pos = body.map(cell => ({ r: cell.r + d.dr * tri * k, c: cell.c + d.dc * tri * k }));
+      const parts = chainParts(chain, pos);
+      if (pathEl) pathEl.setAttribute('d', parts.d);
+      if (decoEl) decoEl.innerHTML = parts.deco;
+      if (e < dur * 2) requestAnimationFrame(frame);
+      else resolve();
+    };
+    requestAnimationFrame(frame);
+  });
 }
 
 // snake the chain off the board: head leads straight along its arrow,
 // every body segment follows the segment ahead of it
-async function slideChainOut(chain, idx) {
+async function slideChainOut(chain) {
   const body = chain.cells.map(c => ({ r: c.r, c: c.c }));
   const n = body.length;
   const head = chain.cells[n - 1];
@@ -1171,17 +1243,28 @@ async function slideChainOut(chain, idx) {
   }
   const routes = body.map((_, i) => body.slice(i).concat(ray));
   const steps = (n - 1) + ray.length;
-  const stepMs = 62; // constant per-cell speed: every buddy travels at the same pace, long or short
-  const pathEl = document.getElementById('chain-path-' + idx);
-  const decoEl = document.getElementById('chain-deco-' + idx);
+  const pathEl = document.getElementById('chain-path-' + chain.uid);
+  const decoEl = document.getElementById('chain-deco-' + chain.uid);
 
-  for (let s = 1; s <= steps; s++) {
-    const pos = routes.map(route => route[Math.min(s, route.length - 1)]);
-    const parts = chainParts(chain, pos);
-    if (pathEl) pathEl.setAttribute('d', parts.d);
-    if (decoEl) decoEl.innerHTML = parts.deco;
-    await sleep(stepMs);
-  }
+  await new Promise((resolve) => {
+    let start = 0;
+    const frame = (now) => {
+      if (!start) start = now;
+      const t = Math.min(steps, (now - start) * CELLS_PER_MS); // fractional cell progress
+      const lo = Math.floor(t), frac = t - lo;
+      const pos = routes.map((route) => {
+        const a = route[Math.min(lo, route.length - 1)];
+        const b = route[Math.min(lo + 1, route.length - 1)];
+        return { r: a.r + (b.r - a.r) * frac, c: a.c + (b.c - a.c) * frac };
+      });
+      const parts = chainParts(chain, pos);
+      if (pathEl) pathEl.setAttribute('d', parts.d);
+      if (decoEl) decoEl.innerHTML = parts.deco;
+      if (t < steps) requestAnimationFrame(frame);
+      else resolve();
+    };
+    requestAnimationFrame(frame);
+  });
   if (pathEl) pathEl.parentNode.remove();
 }
 
@@ -1305,6 +1388,13 @@ document.getElementById('winHome').addEventListener('click', () => {
   hideWinOverlay();
   showScreen('home');
 });
+
+// ---- fail overlay (out of hearts) ----
+const failOverlay = document.getElementById('failOverlay');
+function showFailOverlay() { failOverlay.hidden = false; }
+function hideFailOverlay() { failOverlay.hidden = true; }
+document.getElementById('failRetry').addEventListener('click', () => { hideFailOverlay(); buildBoard(); });
+document.getElementById('failHome').addEventListener('click', () => { hideFailOverlay(); showScreen('home'); });
 
 nextBtn.addEventListener('click', () => buildBoard());
 restartBtn.addEventListener('click', () => buildBoard());

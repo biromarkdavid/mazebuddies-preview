@@ -410,6 +410,64 @@ function isCanvasExit(cell, rows, cols) {
   return nr < 0 || nr >= rows || nc < 0 || nc >= cols;
 }
 
+// orthogonal step direction from cell a to an adjacent cell b, or null
+function dirBetween(a, b) {
+  for (const d of DIR_KEYS) if (a.r + DIRS[d].dr === b.r && a.c + DIRS[d].dc === b.c) return d;
+  return null;
+}
+
+// recompute every cell's dir straight from the next cell; the head gets a heading
+// that walks off the board when one is available (repairSolvability refines later)
+function relinkDirs(cells, rows, cols) {
+  for (let i = 0; i < cells.length - 1; i++) {
+    cells[i].dir = dirBetween(cells[i], cells[i + 1]) || cells[i].dir;
+  }
+  const last = cells[cells.length - 1];
+  const back = cells.length > 1 ? dirBetween(last, cells[cells.length - 2]) : null;
+  const away = DIR_KEYS.find(d => {
+    const nr = last.r + DIRS[d].dr, nc = last.c + DIRS[d].dc;
+    return (nr < 0 || nr >= rows || nc < 0 || nc >= cols) && d !== back;
+  });
+  last.dir = away || DIR_KEYS.find(d => d !== back) || last.dir;
+}
+
+// Fold every chain shorter than MIN into a neighbouring chain. A 1-2 cell trail
+// reads as noise: the buddy sits right under its own arrow. We only splice at a
+// host's endpoint so the result stays a simple path, then relink by geometry.
+function mergeStubs(paths, rows, cols, MIN) {
+  const ownerAt = (r, c) => paths.find(p => p.some(cell => cell.r === r && cell.c === c));
+  let changed = true, guard = 0;
+  while (changed && guard++ < 200) {
+    changed = false;
+    const stubs = paths.filter(p => p.length < MIN).sort((a, b) => a.length - b.length);
+    for (const stub of stubs) {
+      if (stub.length >= MIN || paths.indexOf(stub) < 0) continue;
+      let merged = false;
+      for (const atStart of [true, false]) {
+        const end = atStart ? stub[0] : stub[stub.length - 1];
+        for (const d of DIR_KEYS) {
+          const nr = end.r + DIRS[d].dr, nc = end.c + DIRS[d].dc;
+          const host = ownerAt(nr, nc);
+          if (!host || host === stub) continue;
+          const hs = host[0], he = host[host.length - 1];
+          const atHostEnd = he.r === nr && he.c === nc;
+          const atHostStart = hs.r === nr && hs.c === nc;
+          if (!atHostEnd && !atHostStart) continue;
+          const seg = atStart ? stub.slice() : stub.slice().reverse(); // seg[0] touches the host
+          if (atHostEnd) host.push(...seg);
+          else host.unshift(...seg.reverse());
+          relinkDirs(host, rows, cols);
+          paths.splice(paths.indexOf(stub), 1);
+          changed = merged = true;
+          break;
+        }
+        if (merged) break;
+      }
+    }
+  }
+  return paths;
+}
+
 // ---- buddies per tier ----
 const BUDDIES = [
   { min: 0,  emoji: '🦊', name: 'Foxy',   color: '#E8722C', dark: '#B85A20' },
@@ -470,33 +528,30 @@ function rayClearAgainst(chain, otherChains, rows, cols, dirOverride) {
   return true;
 }
 
-// Peel the board from the outside in: repeatedly take a chain that has a heading
-// clear of every OTHER still-present chain, lock that heading, and remove it.
-// The resulting order is a guaranteed full solution AND it is greedy-safe: at any
-// reachable state, the earliest not-yet-removed chain in this order is always
-// clearable, so the player can never dead-end by tapping "the wrong" buddy.
+// The head arrow never turns on its own square: it keeps going in the exact
+// direction the chain entered the head cell (Mark's rule). We then peel the
+// board from the outside in - repeatedly remove a chain whose straight exit ray
+// is clear of every OTHER still-present chain. If no full peel exists the seed
+// is unsolvable and generateLevel must try another one.
+// The peel order is greedy-safe: removing any clearable chain only frees space,
+// so the player can never dead-end by tapping "the wrong" buddy.
 function repairSolvability(chains, rows, cols) {
+  for (const ch of chains) {
+    const n = ch.cells.length;
+    if (n > 1) ch.cells[n - 1].dir = dirBetween(ch.cells[n - 2], ch.cells[n - 1]) || ch.cells[n - 1].dir;
+  }
   const present = new Set(chains);
   let guard = 0;
-  while (present.size && guard++ < chains.length * 6) {
-    let done = null, dir = null;
+  while (present.size && guard++ < chains.length + 2) {
+    let done = null;
     for (const ch of present) {
       const others = [...present].filter(x => x !== ch);
-      const n = ch.cells.length;
-      const backDir = n > 1 ? DIRS[ch.cells[n - 2].dir].opp : null; // never aim into our own body
-      const good = DIR_KEYS.find(dd => dd !== backDir && rayClearAgainst(ch, others, rows, cols, dd));
-      if (good) { done = ch; dir = good; break; }
+      if (rayClearAgainst(ch, others, rows, cols)) { done = ch; break; }
     }
-    if (!done) {
-      // rare full deadlock: force the first chain outward and accept a possible clip
-      done = present.values().next().value;
-      const n = done.cells.length;
-      const backDir = n > 1 ? DIRS[done.cells[n - 2].dir].opp : null;
-      dir = DIR_KEYS.find(dd => dd !== backDir) || done.cells[n - 1].dir;
-    }
-    done.cells[done.cells.length - 1].dir = dir;
+    if (!done) return false; // deadlock with fixed straight exits - reject this seed
     present.delete(done);
   }
+  return present.size === 0;
 }
 
 function generateLevel(levelIndex) {
@@ -504,13 +559,21 @@ function generateLevel(levelIndex) {
   const rows = tier.size, cols = tier.size;
   const shapeName = SHAPE_NAMES[levelIndex % SHAPE_NAMES.length];
 
+  const MIN_CHAIN = 4; // shorter than this and the buddy overlaps its own arrow
   let chosen = null;
-  for (let attempt = 0; attempt < 40; attempt++) {
+  for (let attempt = 0; attempt < 160; attempt++) {
     const rng = mulberry32(1000 + levelIndex * 7919 + attempt * 104729);
     const mask = buildMask(shapeName, rows, cols);
     const maxLen = 15 + Math.floor(levelIndex / 4); // longer chains -> fewer, readable buddies
-    const rawPaths = snakeFillPaths(mask, rows, cols, rng, maxLen).filter(p => p.length >= 1);
-    if (rawPaths.length < 2) continue;
+    let rawPaths = snakeFillPaths(mask, rows, cols, rng, maxLen).filter(p => p.length >= 1);
+    const maskedCells = rawPaths.reduce((n, p) => n + p.length, 0);
+    rawPaths = mergeStubs(rawPaths, rows, cols, MIN_CHAIN);
+    // whatever stub can't be folded into a neighbour just leaves its cells empty
+    const kept = rawPaths.filter(p => p.length >= MIN_CHAIN);
+    const dropped = maskedCells - kept.reduce((n, p) => n + p.length, 0);
+    if (kept.length < 2) continue;
+    if (dropped > maskedCells * 0.12) continue; // too many holes - try another seed
+    rawPaths = kept;
 
     const kinds = CHAIN_KINDS.slice();
     shuffle(kinds, rng);
@@ -518,15 +581,18 @@ function generateLevel(levelIndex) {
       const k = kinds[i % kinds.length];
       return { img: k.img, color: k.color, dark: k.dark, cells: p };
     });
-    repairSolvability(chains, rows, cols);
+    if (!repairSolvability(chains, rows, cols)) continue; // not fully peelable - reseed
     chosen = { rows, cols, chains, chainCount: chains.length, shape: shapeName };
     break;
   }
   if (!chosen) {
     const k = CHAIN_KINDS[0];
     chosen = {
-      rows: 3, cols: 3, shape: 'fallback', chainCount: 1,
-      chains: [{ img: k.img, color: k.color, dark: k.dark, cells: [{ r: 1, c: 1, dir: 'L' }] }],
+      rows: 1, cols: 6, shape: 'fallback', chainCount: 1,
+      chains: [{ img: k.img, color: k.color, dark: k.dark, cells: [
+        { r: 0, c: 5, dir: 'L' }, { r: 0, c: 4, dir: 'L' },
+        { r: 0, c: 3, dir: 'L' }, { r: 0, c: 2, dir: 'L' }, { r: 0, c: 1, dir: 'L' },
+      ] }],
     };
   }
   return chosen;
@@ -656,12 +722,20 @@ function buddyImageSVG(url, x, y) {
     width="${s.toFixed(1)}" height="${s.toFixed(1)}" preserveAspectRatio="xMidYMid meet"/>`;
 }
 
-// chunky forward-pointing arrow at the head of a chain - shows where it will move
+// sharp forward-pointing chevron at the head of a chain - a notched arrowhead so
+// the travel direction reads unmistakably (Mark: make the point more conspicuous)
 function fwdArrow(x, y, dir, color) {
   const rot = { R: 0, D: 90, L: 180, U: 270 }[dir] || 0;
-  const w = cellSize * 0.4, h = cellSize * 0.58;
-  return `<polygon points="${(-h * 0.5).toFixed(1)},${(-w).toFixed(1)} ${(h * 0.5).toFixed(1)},0 ${(-h * 0.5).toFixed(1)},${w.toFixed(1)}"
-    fill="${color}" stroke="#ffffff" stroke-width="${(cellSize * 0.08).toFixed(1)}" stroke-linejoin="round"
+  const L = cellSize * 0.92;      // tip-to-back length (longer than wide = pointy)
+  const w = cellSize * 0.34;      // half-width at the wings
+  const pts = [
+    [ L * 0.5, 0 ],              // tip
+    [ -L * 0.5, -w ],            // top wing
+    [ -L * 0.22, 0 ],           // back notch
+    [ -L * 0.5, w ],            // bottom wing
+  ].map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  return `<polygon points="${pts}"
+    fill="${color}" stroke="#ffffff" stroke-width="${(cellSize * 0.09).toFixed(1)}" stroke-linejoin="round"
     transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${rot})"/>`;
 }
 

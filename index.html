@@ -220,6 +220,7 @@
   .win-btns button:active { transform: scale(0.95); }
   .fail-hearts { display: flex; justify-content: center; gap: 8px; font-size: 30px; margin: 6px 0 4px; color: #ff4d5e; }
   .fail-hearts .ico { width: 1em; height: 1em; }
+  .fail-hearts .lost { color: var(--grid-line); display: inline-flex; line-height: 0; }
   .revive-btn { width: 100%; border: none; border-radius: 16px; padding: 14px 12px; margin-bottom: 10px;
     background: var(--right); color: #fff; font-weight: 800; font-size: 15px; cursor: pointer;
     display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -340,7 +341,7 @@
 
   <div class="win-overlay" id="failOverlay" hidden>
     <div class="win-card">
-      <div class="win-title">Continue?</div>
+      <div class="win-title" id="failTitle">Continue?</div>
       <div class="fail-hearts" id="failHearts"></div>
       <div class="win-sub" id="failSub">Watch a short ad to revive with an extra life.</div>
       <button class="revive-btn" id="failRevive"><span class="wi" data-ico="next"></span>Watch ad &amp; revive<span class="ad-tag">Ad</span></button>
@@ -1208,33 +1209,44 @@ function loseHeart() {
   }
 }
 
-// wrong tap: the whole chain lunges forward until its head meets the wall, then recoils back
+// wrong tap: the chain snakes out head-first (following its own path, then a
+// straight line) until the head meets the wall, then snakes back into place
 async function slideChainBlocked(chain) {
-  const head = chain.cells[chain.cells.length - 1];
+  const body = chain.cells.map(c => ({ r: c.r, c: c.c }));
+  const n = body.length;
+  const head = chain.cells[n - 1];
   const d = DIRS[head.dir];
   const occ = new Set();
   for (const o of levelData.chains) for (const cell of o.cells) occ.add(cell.r + ',' + cell.c);
   let k = 0, r = head.r + d.dr, c = head.c + d.dc;
   while (k < 40) {
-    if (r < 0 || r >= levelData.rows || c < 0 || c >= levelData.cols) break;
+    if (r < 0 || r >= levelData.rows || c < 0 || c >= levelData.cols) break; // shouldn't happen when blocked
     if (occ.has(r + ',' + c)) break;
     k++; r += d.dr; c += d.dc;
   }
-  k = Math.max(1, k);
-  const body = chain.cells.map(cell => ({ r: cell.r, c: cell.c }));
+  k = Math.max(1, k); // travel at least one cell so the nudge reads
+  const ray = [];
+  for (let j = 1; j <= n + k + 2; j++) ray.push({ r: head.r + d.dr * j, c: head.c + d.dc * j });
+  const routes = body.map((_, i) => body.slice(i).concat(ray)); // same "follow the path" model as a real slide
+  const maxT = k; // head advances exactly k cells (up to the wall), rest of the chain follows
   const pathEl = document.getElementById('chain-path-' + chain.uid);
   const decoEl = document.getElementById('chain-deco-' + chain.uid);
   await new Promise((resolve) => {
     let start = 0, done = false;
-    const dur = k / CELLS_PER_MS; // out; back takes the same
+    const dur = maxT / CELLS_PER_MS; // out; back takes the same
     const finish = () => { if (!done) { done = true; clearTimeout(safety); resolve(); } };
-    const safety = setTimeout(finish, dur * 2 + 1500); // never hang if rAF is starved
+    const safety = setTimeout(finish, dur * 2 + 1500);
     const frame = (now) => {
       if (done) return;
       if (!start) start = now;
       const e = now - start;
-      const tri = e < dur ? (e / dur) : Math.max(0, 2 - e / dur); // 0 -> 1 -> 0
-      const pos = body.map(cell => ({ r: cell.r + d.dr * tri * k, c: cell.c + d.dc * tri * k }));
+      const t = (e < dur ? (e / dur) : Math.max(0, 2 - e / dur)) * maxT; // 0 -> k -> 0 cells
+      const lo = Math.floor(t), frac = t - lo;
+      const pos = routes.map((route) => {
+        const a = route[Math.min(lo, route.length - 1)];
+        const b = route[Math.min(lo + 1, route.length - 1)];
+        return { r: a.r + (b.r - a.r) * frac, c: a.c + (b.c - a.c) * frac };
+      });
       const parts = chainParts(chain, pos);
       if (pathEl) pathEl.setAttribute('d', parts.d);
       if (decoEl) decoEl.innerHTML = parts.deco;
@@ -1412,23 +1424,31 @@ document.getElementById('winHome').addEventListener('click', () => {
 const failOverlay = document.getElementById('failOverlay');
 function showFailOverlay() {
   const fh = document.getElementById('failHearts');
-  fh.innerHTML = ico('heart') + ico('heart') + ico('heart');
   const rev = document.getElementById('failRevive');
   const sub = document.getElementById('failSub');
+  const title = document.getElementById('failTitle');
+  const restartBtnEl = document.getElementById('failRestart');
   if (revivedThisLevel) {
+    // already used the revive on this level - this is a real fail, no continue
+    title.textContent = 'Level failed';
+    fh.innerHTML = ('<span class="lost">' + ico('heart') + '</span>').repeat(3);
+    sub.textContent = 'No lives left. Give this level another go.';
     rev.style.display = 'none';
-    sub.textContent = 'Out of lives on this level.';
+    restartBtnEl.classList.add('primary');
   } else {
+    title.textContent = 'Continue?';
+    fh.innerHTML = ico('heart') + ico('heart') + ico('heart');
+    sub.textContent = 'Watch a short ad to revive with a full set of lives.';
     rev.style.display = '';
-    sub.textContent = 'Watch a short ad to revive with an extra life.';
+    restartBtnEl.classList.remove('primary');
   }
   failOverlay.hidden = false;
 }
 function hideFailOverlay() { failOverlay.hidden = true; }
 document.getElementById('failRevive').addEventListener('click', () => {
-  // TODO: play a rewarded ad here; on reward -> revive
+  // TODO: play a rewarded ad here; grant the revive only on ad completion
   revivedThisLevel = true;
-  hearts = 1;
+  hearts = 3;
   levelFailed = false;
   renderHearts();
   hideFailOverlay();

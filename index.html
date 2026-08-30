@@ -137,11 +137,6 @@
     100% { transform: scale(0.72) translateY(4px) rotate(-18deg); color: var(--grid-line); }
   }
   .level-tag { font-size: 13px; color: var(--sub); font-weight: 700; }
-  .diff-pill { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
-    padding: 3px 8px; border-radius: 999px; margin-left: 2px; }
-  .diff-pill.easy { background: var(--accent-soft); color: var(--accent); }
-  .diff-pill.hard { background: #ffe1cf; color: #d9622a; }
-  :root:not([data-theme="light"]) .diff-pill.hard { background: #4a2a17; color: #ffb083; }
   .progress-bar { height: 4px; background: var(--grid-line); border-radius: 2px; margin: 12px 0 20px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s; }
   .ad-slot { flex: none; height: 52px; margin: -4px -20px 8px; background: var(--nav-bg);
@@ -368,7 +363,6 @@
       <button class="btn-round" id="restartBtn" title="Restart level">&#8635;</button>
       <div class="hearts" id="hearts"></div>
       <div class="level-tag" id="levelTag">Level 1</div>
-      <div class="diff-pill" id="diffPill"></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
     <div class="board-wrap">
@@ -1523,12 +1517,7 @@ function buildBoard() {
   nextBtn.style.display = 'none';
   nextBtn.innerHTML = 'Next level &rarr;';
   levelTagEl.textContent = t('level') + ' ' + (currentLevel + 1);
-  const dp = document.getElementById('diffPill');
-  if (dp) {
-    const hard = levelData.difficulty === 'hard';
-    dp.textContent = t(hard ? 'hard' : 'easy');
-    dp.className = 'diff-pill ' + (hard ? 'hard' : 'easy');
-  }
+  // difficulty (easy/hard) is internal-only tuning info - never surfaced to the player
   progressFill.style.width = Math.min(100, ((currentLevel % 10) / 10) * 100) + '%';
   heartsEl.style.display = 'flex';
   renderHearts();

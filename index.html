@@ -103,6 +103,9 @@
   .board-wrap { flex: 1; display: flex; align-items: center; justify-content: center;
     position: relative; overflow: hidden; touch-action: none; }
   #grid { display: block; transform-origin: 0 0; will-change: transform; }
+  #grid .shape-cell { fill: #c7cef2; }
+  :root:not([data-theme="light"]) #grid .shape-cell { fill: #2c3160; }
+  [data-theme="dark"] #grid .shape-cell { fill: #2c3160; }
   #grid .hit { cursor: pointer; }
   #grid .hit:active + .arrowhead { opacity: 0.6; }
   .zoom-btns { position: absolute; right: 6px; bottom: 6px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
@@ -292,7 +295,6 @@
   <div class="win-overlay" id="winOverlay" hidden>
     <div class="win-card">
       <div class="win-title">Level clear!</div>
-      <div class="win-stars" id="winStars"></div>
       <div class="win-sub" id="winSub">0 moves.</div>
       <div class="win-streak">
         <span class="flame">🔥</span><span class="stxt" id="winStreakTxt">1 day streak</span>
@@ -344,13 +346,12 @@ const DIR_KEYS = ['U', 'D', 'L', 'R'];
 // ---- difficulty tiers: grid resolution grows, shape stays recognizable ----
 function tierFor(levelIndex) {
   const n = levelIndex + 1; // 1-based level number
-  if (n <= 2)  return { size: 10 };
-  if (n <= 5)  return { size: 12 };
-  if (n <= 9)  return { size: 13 };
-  if (n <= 18) return { size: 15 };
-  if (n <= 32) return { size: 17 };
-  if (n <= 50) return { size: 19 };
-  return         { size: 21 };
+  if (n <= 3)  return { size: 13 }; // big enough that the silhouette reads even on level 1
+  if (n <= 8)  return { size: 15 };
+  if (n <= 16) return { size: 17 };
+  if (n <= 30) return { size: 19 };
+  if (n <= 50) return { size: 21 };
+  return         { size: 23 };
 }
 
 // ---- silhouette shapes: the whole maze is packed to fill one of these outlines ----
@@ -406,14 +407,26 @@ const SHAPES = {
   diamond(x, y) {
     return Math.abs(x) + Math.abs(y) * 0.85 <= 0.98;
   },
+  house(x, y) {
+    const roofTop = -0.92, roofBottom = -0.06;
+    if (y >= roofTop && y <= roofBottom) {
+      const half = ((y - roofTop) / (roofBottom - roofTop)) * 0.96;
+      if (Math.abs(x) <= half) return true;
+    }
+    return y > roofBottom && y <= 0.9 && Math.abs(x) <= 0.66;
+  },
+  circle(x, y) {
+    return x * x + y * y <= 0.96 * 0.96;
+  },
 };
-const SHAPE_NAMES = Object.keys(SHAPES);
+// recognisable shapes lead the rotation so early levels read clearly
+const SHAPE_NAMES = ['heart', 'house', 'star', 'diamond', 'circle', 'arrow', 'horseshoe'];
 
 function buildMask(shapeName, rows, cols) {
   const test = SHAPES[shapeName];
   const mask = Array.from({ length: rows }, () => Array(cols).fill(false));
   const aspect = cols / rows;
-  const SCALE = 0.88; // shrink sampled coords so the shape's silhouette actually reaches the canvas edge somewhere
+  const SCALE = 0.94; // shrink sampled coords so the shape's silhouette actually reaches the canvas edge somewhere
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const x = ((c + 0.5) / cols * 2 - 1) * Math.max(1, aspect) * SCALE;
@@ -424,51 +437,110 @@ function buildMask(shapeName, rows, cols) {
   return mask;
 }
 
-// ---- fill the whole silhouette with non-crossing arrow chains (one cell = one chain, ever) ----
-function snakeFillPaths(mask, rows, cols, rng, maxLen) {
-  const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
-  const order = [];
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (mask[r][c]) order.push({ r, c });
-  shuffle(order, rng);
-
-  const paths = [];
-  for (const start of order) {
-    if (visited[start.r][start.c]) continue;
-    const path = [];
-    let r = start.r, c = start.c;
-    // cap each chain so the board reads as many medium snakes, not one giant one
-    const cap = maxLen ? randInt(rng, Math.max(2, maxLen - 3), maxLen) : Infinity;
-    while (true) {
-      visited[r][c] = true;
-      const inside = [], outside = [];
-      for (const d of DIR_KEYS) {
-        const nd = DIRS[d];
-        const nr = r + nd.dr, nc = c + nd.dc;
-        const isInGrid = nr >= 0 && nr < rows && nc >= 0 && nc < cols;
-        const isFreeInside = isInGrid && mask[nr][nc] && !visited[nr][nc];
-        if (isFreeInside) inside.push({ d, nr, nc });
-        else if (!isInGrid) outside.push({ d, edge: true });
-        else if (!mask[nr][nc]) outside.push({ d, edge: false });
-      }
-      if (inside.length && path.length + 1 < cap) {
-        shuffle(inside, rng);
-        const next = inside[0];
-        path.push({ r, c, dir: next.d });
-        r = next.nr; c = next.nc;
-        continue;
-      }
-      // terminate: prefer a heading that leaves the canvas, else any free-ish side, else anything
-      shuffle(outside, rng);
-      outside.sort((a, b) => (b.edge ? 1 : 0) - (a.edge ? 1 : 0));
-      let termDir = (outside[0] && outside[0].d);
-      if (!termDir && inside.length) { shuffle(inside, rng); termDir = inside[0].d; }
-      if (!termDir) termDir = pick(rng, DIR_KEYS);
-      path.push({ r, c, dir: termDir });
-      break;
+// Carve the silhouette into chains that are SOLVABLE BY CONSTRUCTION.
+// Chains are built in the order the player will clear them: when we add chain k,
+// its head only needs a straight exit ray that clears chains 1..k-1 (the ones
+// still on the board when chain k is tapped). Chains carved later occupy cells
+// that are cleared earlier, so they never block chain k. We prefer a head that
+// continues the chain's own last step (no arrow turning on its own square) and
+// only fall back to a turned head when nothing straight is open.
+function carvePaths(mask, rows, cols, rng, minLen, maxLen, fillFrac) {
+  const key = (r, c) => r * cols + c;
+  const free = new Set();
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (mask[r][c]) free.add(key(r, c));
+  const maskCells = free.size;
+  const target = Math.round(maskCells * (fillFrac || 1));
+  const onEdge = (r, c) => {
+    for (const d of DIR_KEYS) {
+      const nr = r + DIRS[d].dr, nc = c + DIRS[d].dc;
+      if (nr < 0 || nr >= rows || nc < 0 || nc >= cols || !mask[nr][nc]) return true;
     }
-    paths.push(path);
+    return false;
+  };
+  const built = new Set(); // cells of chains already finalised (cleared AFTER this one)
+  const chains = [];
+
+  const rayClearsBuilt = (r, c, dir) => {
+    const d = DIRS[dir];
+    let rr = r + d.dr, cc = c + d.dc, g = 0;
+    while (g++ < 256) {
+      if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) return true;
+      if (built.has(key(rr, cc))) return false;
+      rr += d.dr; cc += d.dc;
+    }
+    return true;
+  };
+  const headFor = (path) => {
+    for (const end of [path.length - 1, 0]) {
+      const h = path[end], prev = path[end === 0 ? 1 : path.length - 2];
+      const straight = prev ? dirBetween(prev, h) : null;
+      if (straight && rayClearsBuilt(h.r, h.c, straight)) return { end, dir: straight, turned: false };
+      const back = straight ? DIRS[straight].opp : null;
+      const any = DIR_KEYS.find(d => d !== back && rayClearsBuilt(h.r, h.c, d));
+      if (any) return { end, dir: any, turned: true };
+    }
+    return null;
+  };
+
+  const ATTEMPTS = 14;
+  let safety = 0;
+  while (built.size < target && free.size && safety++ < rows * cols * 4) {
+    let chosen = null, chosenHead = null;
+    for (let attempt = 0; attempt < ATTEMPTS && !chosen; attempt++) {
+      const walked = [];
+      const pool = [...free];
+      const edgePool = pool.filter(k => onEdge((k / cols) | 0, k % cols));
+      const src = (edgePool.length && rng() < 0.8) ? edgePool : pool; // hug the silhouette outline
+      const startK = src[Math.floor(rng() * src.length)];
+      let r = (startK / cols) | 0, c = startK % cols;
+      free.delete(startK); walked.push(startK);
+      const path = [{ r, c }];
+      const cap = randInt(rng, minLen, maxLen);
+      let lastDir = null, w = 0;
+      while (w++ < maxLen * 4 && path.length < cap) {
+        const opts = [];
+        for (const dd of DIR_KEYS) {
+          const nr = r + DIRS[dd].dr, nc = c + DIRS[dd].dc;
+          if (free.has(key(nr, nc))) opts.push({ d: dd, nr, nc });
+        }
+        if (!opts.length) break;
+        // once long enough, stop the moment the current heading has a clean straight exit
+        if (path.length >= minLen && lastDir && rayClearsBuilt(r, c, lastDir) && rng() < 0.5) break;
+        let next = (lastDir && rng() < 0.66) ? opts.find(o => o.d === lastDir) : null;
+        if (!next) { shuffle(opts, rng); next = opts[0]; }
+        lastDir = next.d; r = next.nr; c = next.nc;
+        path.push({ r, c });
+        free.delete(key(r, c)); walked.push(key(r, c));
+      }
+      const head = path.length >= 2 ? headFor(path) : null;
+      const acceptTurned = attempt >= ATTEMPTS - 1; // straight-only until the very last try
+      if (head && path.length >= minLen && (!head.turned || acceptTurned)) {
+        chosen = head.end === 0 ? path.slice().reverse() : path;
+        chosenHead = head;
+      } else {
+        for (const k of walked) free.add(k); // dead-end route, unwind and try again
+      }
+    }
+    if (!chosen) {
+      // last resort: take the smallest lump of remaining free cells as one chain
+      const k0 = [...free][0];
+      let r = (k0 / cols) | 0, c = k0 % cols;
+      free.delete(k0);
+      const path = [{ r, c }];
+      for (const dd of DIR_KEYS) {
+        const nr = r + DIRS[dd].dr, nc = c + DIRS[dd].dc;
+        if (free.has(key(nr, nc))) { path.push({ r: nr, c: nc }); free.delete(key(nr, nc)); break; }
+      }
+      chosen = path;
+      chosenHead = headFor(path) || { dir: 'U', turned: true };
+    }
+    for (let i = 0; i < chosen.length - 1; i++) chosen[i].dir = dirBetween(chosen[i], chosen[i + 1]);
+    chosen[chosen.length - 1].dir = chosenHead.dir;
+    chosen.turnedHead = chosenHead.turned;
+    for (const cell of chosen) built.add(key(cell.r, cell.c));
+    chains.push(chosen);
   }
-  return paths;
+  return chains;
 }
 
 function isCanvasExit(cell, rows, cols) {
@@ -498,32 +570,38 @@ function relinkDirs(cells, rows, cols) {
   last.dir = away || DIR_KEYS.find(d => d !== back) || last.dir;
 }
 
-// Fold every chain shorter than MIN into a neighbouring chain. A 1-2 cell trail
-// reads as noise: the buddy sits right under its own arrow. We only splice at a
-// host's endpoint so the result stays a simple path, then relink by geometry.
+// Fold every chain shorter than MIN into a neighbour so NO cell is ever left empty
+// (the silhouette must read on every level) and no buddy sits under its own arrow.
+// First try to splice onto a host's endpoint (keeps it a simple path); if the stub
+// only touches a host mid-body, split that host in two and graft the stub on there.
+// Returns the rebuilt path list, or false if a stub is genuinely isolated (reseed).
 function mergeStubs(paths, rows, cols, MIN) {
-  const ownerAt = (r, c) => paths.find(p => p.some(cell => cell.r === r && cell.c === c));
-  let changed = true, guard = 0;
-  while (changed && guard++ < 200) {
+  const key = (r, c) => r * cols + c;
+  const rebuild = () => {
+    const m = new Map();
+    for (const p of paths) for (const cell of p) m.set(key(cell.r, cell.c), p);
+    return m;
+  };
+  let guard = 0, changed = true;
+  while (changed && guard++ < 300) {
     changed = false;
-    const stubs = paths.filter(p => p.length < MIN).sort((a, b) => a.length - b.length);
-    for (const stub of stubs) {
+    const owner = rebuild();
+    for (const stub of paths.filter(p => p.length < MIN).sort((a, b) => a.length - b.length)) {
       if (stub.length >= MIN || paths.indexOf(stub) < 0) continue;
       let merged = false;
       for (const atStart of [true, false]) {
         const end = atStart ? stub[0] : stub[stub.length - 1];
         for (const d of DIR_KEYS) {
           const nr = end.r + DIRS[d].dr, nc = end.c + DIRS[d].dc;
-          const host = ownerAt(nr, nc);
-          if (!host || host === stub) continue;
-          const hs = host[0], he = host[host.length - 1];
-          const atHostEnd = he.r === nr && he.c === nc;
-          const atHostStart = hs.r === nr && hs.c === nc;
-          if (!atHostEnd && !atHostStart) continue;
-          const seg = atStart ? stub.slice() : stub.slice().reverse(); // seg[0] touches the host
-          if (atHostEnd) host.push(...seg);
-          else host.unshift(...seg.reverse());
-          relinkDirs(host, rows, cols);
+          const H = owner.get(key(nr, nc));
+          if (!H || H === stub) continue;
+          const hs = H[0], he = H[H.length - 1];
+          const atEnd = he.r === nr && he.c === nc;
+          const atSt = hs.r === nr && hs.c === nc;
+          if (!atEnd && !atSt) continue; // only splice at a host endpoint - stays a simple path
+          const seg = atStart ? stub.slice() : stub.slice().reverse();
+          if (atEnd) H.push(...seg); else H.unshift(...seg.reverse());
+          relinkDirs(H, rows, cols);
           paths.splice(paths.indexOf(stub), 1);
           changed = merged = true;
           break;
@@ -532,7 +610,7 @@ function mergeStubs(paths, rows, cols, MIN) {
       }
     }
   }
-  return paths;
+  return paths; // any still-short stub is filtered by the caller
 }
 
 // ---- buddies per tier ----
@@ -581,42 +659,38 @@ function shuffle(arr, rng) {
   }
 }
 
-// ---- solvability: a chain can leave now if its head's straight ray is free of every remaining chain ----
-function rayClearAgainst(chain, otherChains, rows, cols, dirOverride) {
-  const head = chain.cells[chain.cells.length - 1];
-  const d = DIRS[dirOverride || head.dir];
-  const occ = new Set();
-  for (const o of otherChains) for (const cell of o.cells) occ.add(cell.r + ',' + cell.c);
-  let r = head.r + d.dr, c = head.c + d.dc, guard = 0;
-  while (guard++ < 128) {
+// straight ray from `from` heading `dir`: clear if it reaches an edge without
+// crossing any occupied cell (occ is a Set of r*cols+c keys)
+function rayClear(from, dir, occ, rows, cols) {
+  const d = DIRS[dir];
+  let r = from.r + d.dr, c = from.c + d.dc, guard = 0;
+  while (guard++ < 256) {
     if (r < 0 || r >= rows || c < 0 || c >= cols) return true;
-    if (occ.has(r + ',' + c)) return false;
+    if (occ.has(r * cols + c)) return false;
     r += d.dr; c += d.dc;
   }
   return true;
 }
 
-// The head arrow never turns on its own square: it keeps going in the exact
-// direction the chain entered the head cell (Mark's rule). We then peel the
-// board from the outside in - repeatedly remove a chain whose straight exit ray
-// is clear of every OTHER still-present chain. If no full peel exists the seed
-// is unsolvable and generateLevel must try another one.
-// The peel order is greedy-safe: removing any clearable chain only frees space,
-// so the player can never dead-end by tapping "the wrong" buddy.
-function repairSolvability(chains, rows, cols) {
-  for (const ch of chains) {
-    const n = ch.cells.length;
-    if (n > 1) ch.cells[n - 1].dir = dirBetween(ch.cells[n - 2], ch.cells[n - 1]) || ch.cells[n - 1].dir;
-  }
+// Pure check (no mutation): can the board be fully cleared by the runtime rule -
+// repeatedly remove any chain whose head's straight ray clears the others?
+// carvePaths already guarantees this; this is a cheap guard against a bad seed.
+function verifyPeelable(chains, rows, cols) {
+  const K = (cell) => cell.r * cols + cell.c;
   const present = new Set(chains);
+  const occ = new Set();
+  for (const ch of present) for (const cell of ch.cells) occ.add(K(cell));
   let guard = 0;
-  while (present.size && guard++ < chains.length + 2) {
+  while (present.size && guard++ < chains.length + 3) {
     let done = null;
     for (const ch of present) {
-      const others = [...present].filter(x => x !== ch);
-      if (rayClearAgainst(ch, others, rows, cols)) { done = ch; break; }
+      for (const cell of ch.cells) occ.delete(K(cell));
+      const head = ch.cells[ch.cells.length - 1];
+      const clear = rayClear(head, head.dir, occ, rows, cols);
+      if (!clear) for (const cell of ch.cells) occ.add(K(cell));
+      if (clear) { done = ch; break; }
     }
-    if (!done) return false; // deadlock with fixed straight exits - reject this seed
+    if (!done) return false;
     present.delete(done);
   }
   return present.size === 0;
@@ -628,31 +702,33 @@ function generateLevel(levelIndex) {
   const shapeName = SHAPE_NAMES[levelIndex % SHAPE_NAMES.length];
 
   const MIN_CHAIN = 4; // shorter than this and the buddy overlaps its own arrow
-  let chosen = null;
-  for (let attempt = 0; attempt < 160; attempt++) {
+  const FILL = 0.74;   // leave breathing room so heads get straight exits and the board stays solvable
+  const mask = buildMask(shapeName, rows, cols);
+  const shapeCells = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (mask[r][c]) shapeCells.push({ r, c });
+
+  let chosen = null, best = null, bestScore = Infinity;
+  for (let attempt = 0; attempt < 16; attempt++) {
     const rng = mulberry32(1000 + levelIndex * 7919 + attempt * 104729);
-    const mask = buildMask(shapeName, rows, cols);
-    const maxLen = 15 + Math.floor(levelIndex / 4); // longer chains -> fewer, readable buddies
-    let rawPaths = snakeFillPaths(mask, rows, cols, rng, maxLen).filter(p => p.length >= 1);
-    const maskedCells = rawPaths.reduce((n, p) => n + p.length, 0);
-    rawPaths = mergeStubs(rawPaths, rows, cols, MIN_CHAIN);
-    // whatever stub can't be folded into a neighbour just leaves its cells empty
-    const kept = rawPaths.filter(p => p.length >= MIN_CHAIN);
-    const dropped = maskedCells - kept.reduce((n, p) => n + p.length, 0);
-    if (kept.length < 2) continue;
-    if (dropped > maskedCells * 0.12) continue; // too many holes - try another seed
-    rawPaths = kept;
+    const maxLen = 11 + Math.floor(levelIndex / 6);
+    const raw = carvePaths(mask, rows, cols, rng, MIN_CHAIN, maxLen, FILL);
+    const kept = raw.filter(p => p.length >= MIN_CHAIN);
+    if (kept.length < 3) continue;
 
     const kinds = CHAIN_KINDS.slice();
     shuffle(kinds, rng);
-    const chains = rawPaths.map((p, i) => {
+    const chains = kept.map((p, i) => {
       const k = kinds[i % kinds.length];
-      return { img: k.img, color: k.color, dark: k.dark, treat: k.treat, cells: p };
+      return { img: k.img, color: k.color, dark: k.dark, treat: k.treat, turnedHead: p.turnedHead,
+        cells: p.map(c => ({ r: c.r, c: c.c, dir: c.dir })) };
     });
-    if (!repairSolvability(chains, rows, cols)) continue; // not fully peelable - reseed
-    chosen = { rows, cols, chains, chainCount: chains.length, shape: shapeName };
-    break;
+    if (!verifyPeelable(chains, rows, cols)) continue; // guaranteed by carve, but double-check
+
+    const turned = chains.reduce((n, ch) => n + (ch.turnedHead ? 1 : 0), 0);
+    if (turned === 0) { chosen = { rows, cols, chains, chainCount: chains.length, shape: shapeName, shapeCells }; break; }
+    if (turned < bestScore) { bestScore = turned; best = { rows, cols, chains, chainCount: chains.length, shape: shapeName, shapeCells }; }
   }
+  if (!chosen && best) chosen = best; // fewest turned heads wins
   if (!chosen) {
     const k = CHAIN_KINDS[0];
     chosen = {
@@ -784,24 +860,15 @@ function chainParts(chain, positions) {
   };
 }
 
-// a little themed nibble sitting beside the trail every 2nd tile, alternating sides
+// a little themed nibble riding ON the trail every 2nd tile
 function trailTreats(chain, positions) {
   if (!chain.treat) return '';
   const n = positions.length;
-  const fs = (cellSize * 0.5).toFixed(1);
+  const fs = (cellSize * 0.38).toFixed(1);
   let out = '';
   for (let i = 2; i <= n - 2; i += 2) {
-    const a = pt(positions[i - 1].r, positions[i - 1].c);
-    const b = pt(positions[i + 1].r, positions[i + 1].c);
-    let vx = b.x - a.x, vy = b.y - a.y;
-    const len = Math.hypot(vx, vy) || 1;
-    vx /= len; vy /= len;
-    const side = ((i / 2) % 2 === 0) ? 1 : -1;
-    const off = cellSize * 0.62 * side;
     const p = pt(positions[i].r, positions[i].c);
-    const x = (p.x - vy * off).toFixed(1);
-    const y = (p.y + vx * off).toFixed(1);
-    out += `<text x="${x}" y="${y}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${chain.treat}</text>`;
+    out += `<text x="${p.x.toFixed(1)}" y="${p.y.toFixed(1)}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${chain.treat}</text>`;
   }
   return out;
 }
@@ -947,7 +1014,13 @@ function chainSVG(chain, idx) {
 }
 
 function renderBoard() {
-  let groups = '', hits = '';
+  let groups = '', hits = '', shape = '';
+  // solid silhouette behind the maze so every level reads as its shape (heart, house, ...)
+  const pitch = cellSize + gap;
+  for (const cell of (levelData.shapeCells || [])) {
+    const p = pt(cell.r, cell.c);
+    shape += `<rect x="${(p.x - pitch / 2).toFixed(1)}" y="${(p.y - pitch / 2).toFixed(1)}" width="${pitch.toFixed(1)}" height="${pitch.toFixed(1)}" class="shape-cell"/>`;
+  }
   levelData.chains.forEach((chain, idx) => {
     groups += chainSVG(chain, idx);
     for (const cell of chain.cells) {
@@ -956,6 +1029,7 @@ function renderBoard() {
     }
   });
   gridEl.innerHTML = `<svg viewBox="0 0 ${boardW} ${boardH}" width="${boardW}" height="${boardH}" style="overflow:visible">
+    <g id="shape">${shape}</g>
     <g id="chains">${groups}</g>
     <g id="hits">${hits}</g>
   </svg>`;
@@ -1049,7 +1123,7 @@ async function slideChainOut(chain, idx) {
   }
   const routes = body.map((_, i) => body.slice(i).concat(ray));
   const steps = (n - 1) + ray.length;
-  const stepMs = Math.max(18, Math.min(46, Math.round(650 / steps)));
+  const stepMs = 62; // constant per-cell speed: every buddy travels at the same pace, long or short
   const pathEl = document.getElementById('chain-path-' + idx);
   const decoEl = document.getElementById('chain-deco-' + idx);
 
@@ -1156,12 +1230,9 @@ function renderWeekStrip() {
   }
 }
 function showWinOverlay() {
-  const stars = Math.max(1, hearts); // 3 = flawless, fewer if hearts were lost
-  const starEls = [0, 1, 2].map(i => '<span class="s' + (i < stars ? ' on' : '') + '">★</span>').join('');
-  document.getElementById('winStars').innerHTML = starEls;
   document.getElementById('winSub').textContent = moves + (moves === 1 ? ' move.' : ' moves.');
   const ds = save.dayStreak || 1;
-  document.getElementById('winStreakTxt').textContent = ds + (ds === 1 ? ' day streak' : ' day streak');
+  document.getElementById('winStreakTxt').textContent = ds + ' day streak';
   renderWeekStrip();
   winOverlay.hidden = false;
   busy = true;

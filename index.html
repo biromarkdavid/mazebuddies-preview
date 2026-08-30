@@ -6,27 +6,28 @@
 <title>Maze Buddies</title>
 <style>
   :root {
-    --bg: #f7f8fd;
+    /* alpine-grass green as the brand colour - deliberately not the blue of the games we drew from */
+    --bg: #f6faf3;
     --panel: #ffffff;
-    --ink: #1b1e3d;
-    --sub: #6a6f9a;
-    --accent: #5b6cff;
-    --accent-soft: #e4e6fb;
-    --wrong: #ff4d5e;
-    --right: #34c77b;
+    --ink: #21331d;
+    --sub: #6c7d64;
+    --accent: #5aa843;
+    --accent-soft: #e7f3dd;
+    --wrong: #ff5a5f;
+    --right: #2fb56b;
     --grid-empty: transparent;
-    --grid-line: #d6d9f2;
-    --nav-bg: #eef0fb;
+    --grid-line: #d5e5cb;
+    --nav-bg: #ecf4e6;
   }
   [data-theme="dark"] {
-    --bg: #14162b;
-    --panel: #1d2040;
-    --ink: #eef0ff;
-    --sub: #9195c4;
-    --accent: #7c8bff;
-    --accent-soft: #2a2d55;
-    --grid-line: #34386a;
-    --nav-bg: #1a1c38;
+    --bg: #161e12;
+    --panel: #1e2a19;
+    --ink: #edf5e8;
+    --sub: #93a589;
+    --accent: #7ccb5e;
+    --accent-soft: #2b3a25;
+    --grid-line: #35472e;
+    --nav-bg: #17200f;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overflow: hidden; }
@@ -218,6 +219,12 @@
   .win-btns button .wi { font-size: 18px; }
   .win-btns button.primary { background: var(--accent); color: #fff; }
   .win-btns button:active { transform: scale(0.95); }
+  .big-next { width: 100%; margin-top: 10px; border: none; border-radius: 18px; padding: 16px 12px;
+    background: var(--accent); color: #fff; font-weight: 800; font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 8px 20px -6px var(--accent); }
+  .big-next .wi { font-size: 18px; }
+  .big-next:active { transform: scale(0.97); }
   .fail-hearts { display: flex; justify-content: center; gap: 8px; font-size: 30px; margin: 6px 0 4px; color: #ff4d5e; }
   .fail-hearts .ico { width: 1em; height: 1em; }
   .fail-hearts .lost { color: var(--grid-line); display: inline-flex; line-height: 0; }
@@ -334,8 +341,8 @@
       <div class="win-btns">
         <button id="winHome"><span class="wi" data-ico="home"></span>Home</button>
         <button id="winRetry"><span class="wi" data-ico="retry"></span>Retry</button>
-        <button id="winNext" class="primary"><span class="wi" data-ico="next"></span>Next</button>
       </div>
+      <button id="winNext" class="big-next"><span class="wi" data-ico="next"></span>Next level</button>
     </div>
   </div>
 
@@ -1099,23 +1106,37 @@ function chainSVG(chain) {
   </g>`;
 }
 
-function renderBoard() {
-  let groups = '', hits = '';
-  // chains still on the board plus any that are mid-slide-out (kept so their animation survives a re-render)
-  for (const chain of levelData.chains.concat([...animating])) groups += chainSVG(chain);
+function hitsMarkup() {
+  let hits = '';
   levelData.chains.forEach((chain) => {
     for (const cell of chain.cells) {
       const p = pt(cell.r, cell.c);
       hits += `<rect class="hit" data-uid="${chain.uid}" x="${p.x - cellSize / 2}" y="${p.y - cellSize / 2}" width="${cellSize}" height="${cellSize}" fill="transparent"/>`;
     }
   });
-  gridEl.innerHTML = `<svg viewBox="0 0 ${boardW} ${boardH}" width="${boardW}" height="${boardH}" style="overflow:visible">
-    <g id="chains">${groups}</g>
-    <g id="hits">${hits}</g>
-  </svg>`;
+  return hits;
+}
+function bindHits() {
   gridEl.querySelectorAll('.hit').forEach(el => {
     el.addEventListener('click', () => onTap(Number(el.dataset.uid)));
   });
+}
+// full rebuild - only on a fresh board. During play we never rebuild the chain
+// <g>s (that would break in-flight animations); we only refresh the hit layer.
+function renderBoard() {
+  let groups = '';
+  for (const chain of levelData.chains.concat([...animating])) groups += chainSVG(chain);
+  gridEl.innerHTML = `<svg viewBox="0 0 ${boardW} ${boardH}" width="${boardW}" height="${boardH}" style="overflow:visible">
+    <g id="chains">${groups}</g>
+    <g id="hits">${hitsMarkup()}</g>
+  </svg>`;
+  bindHits();
+}
+// swap just the tap targets so a chain that left (or came back) can't be mis-tapped,
+// leaving every chain's <g> - and any running slide animation - untouched
+function refreshHits() {
+  const hg = gridEl.querySelector('#hits');
+  if (hg) { hg.innerHTML = hitsMarkup(); bindHits(); }
 }
 
 function setStatus(text, cls) {
@@ -1160,27 +1181,30 @@ async function onTap(uid) {
 
   // pull it off the live board immediately so other buddies can be tapped in parallel
   const i = levelData.chains.indexOf(chain);
-  const blocked = !rayIsClear(chain);
+  let blocked = !rayIsClear(chain);
   levelData.chains.splice(i, 1);
   animating.add(chain);
-  renderBoard();
+  refreshHits(); // its <g> stays and keeps animating; only the tap targets change
+
+  // if it looked blocked, give a co-tapped chain a moment to vacate first - only a
+  // genuinely blocked chain (blocker not leaving) still fails after this
+  if (blocked) { await sleep(70); blocked = !rayIsClear(chain); }
 
   if (blocked) {
     vibrate(40);
-    await slideChainBlocked(chain); // lurch to the wall, crawl back
+    await slideChainBlocked(chain); // snake out to the wall and back
     animating.delete(chain);
     levelData.chains.push(chain);
     levelData.chains.sort((a, b) => a.uid - b.uid);
-    renderBoard();
+    refreshHits();
     loseHeart();
     return;
   }
 
   moves++;
   vibrate(20);
-  await slideChainOut(chain);
+  await slideChainOut(chain); // removes its own <g> when finished
   animating.delete(chain);
-  renderBoard();
 
   if (levelData.chains.length === 0 && animating.size === 0 && !levelFailed) {
     await win();
@@ -1329,7 +1353,7 @@ async function win() {
 const fx = document.getElementById('fx');
 const fxCtx = fx.getContext('2d');
 let fxParticles = [], fxRAF = 0;
-const CONFETTI_COLORS = ['#ffc32b', '#5b6cff', '#34c77b', '#ff4d5e', '#f59b23', '#8c5bff', '#4ec3d0'];
+const CONFETTI_COLORS = ['#ffc32b', '#5aa843', '#2fb56b', '#ff5a5f', '#f59b23', '#8bd36a', '#4ec3d0'];
 
 function sizeFx() {
   const r = document.getElementById('app').getBoundingClientRect();

@@ -928,13 +928,29 @@ function carvePaths(mask, rows, cols, rng, minLen, maxLen, fillFrac, straightBia
     }
     return true;
   };
+  // the exit ray must also miss the chain's OWN body - a head that points back
+  // across its own cells is a U-turn shape that can never slide free (Márk).
+  const rayClearsSelf = (path, end, dir) => {
+    const h = path[end], d = DIRS[dir];
+    const own = new Set();
+    for (let i = 0; i < path.length; i++) if (i !== end) own.add(path[i].r + ',' + path[i].c);
+    let rr = h.r + d.dr, cc = h.c + d.dc, g = 0;
+    while (g++ < 256) {
+      if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) return true;
+      if (own.has(rr + ',' + cc)) return false;
+      rr += d.dr; cc += d.dc;
+    }
+    return true;
+  };
   const headFor = (path) => {
     for (const end of [path.length - 1, 0]) {
       const h = path[end], prev = path[end === 0 ? 1 : path.length - 2];
       const straight = prev ? dirBetween(prev, h) : null;
-      if (straight && rayClearsBuilt(h.r, h.c, straight)) return { end, dir: straight, turned: false };
+      if (straight && rayClearsBuilt(h.r, h.c, straight) && rayClearsSelf(path, end, straight)) {
+        return { end, dir: straight, turned: false };
+      }
       const back = straight ? DIRS[straight].opp : null;
-      const any = DIR_KEYS.find(d => d !== back && rayClearsBuilt(h.r, h.c, d));
+      const any = DIR_KEYS.find(d => d !== back && rayClearsBuilt(h.r, h.c, d) && rayClearsSelf(path, end, d));
       if (any) return { end, dir: any, turned: true };
     }
     return null;
@@ -1223,6 +1239,24 @@ function shuffle(arr, rng) {
 
 // straight ray from `from` heading `dir`: clear if it reaches an edge without
 // crossing any occupied cell (occ is a Set of r*cols+c keys)
+// A chain whose straight exit ray runs back across its own body is a U-turn shape
+// that can never slide free - the level would look unsolvable (Márk 2026-08-30).
+// Reject any such chain at generation time.
+function headHitsOwnBody(cells, rows, cols) {
+  const head = cells[cells.length - 1];
+  const d = DIRS[head.dir];
+  if (!d) return false;
+  const own = new Set();
+  for (let i = 0; i < cells.length - 1; i++) own.add(cells[i].r + ',' + cells[i].c);
+  let r = head.r + d.dr, c = head.c + d.dc, g = 0;
+  while (g++ < 256) {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
+    if (own.has(r + ',' + c)) return true;
+    r += d.dr; c += d.dc;
+  }
+  return false;
+}
+
 function rayClear(from, dir, occ, rows, cols) {
   const d = DIRS[dir];
   let r = from.r + d.dr, c = from.c + d.dc, guard = 0;
@@ -1248,7 +1282,7 @@ function verifyPeelable(chains, rows, cols) {
     for (const ch of present) {
       for (const cell of ch.cells) occ.delete(K(cell));
       const head = ch.cells[ch.cells.length - 1];
-      const clear = rayClear(head, head.dir, occ, rows, cols);
+      const clear = rayClear(head, head.dir, occ, rows, cols) && !headHitsOwnBody(ch.cells, rows, cols);
       if (!clear) for (const cell of ch.cells) occ.add(K(cell));
       if (clear) { done = ch; break; }
     }
@@ -1294,10 +1328,10 @@ function _generateLevel(levelIndex) {
   const stamp = (o) => Object.assign(o, { difficulty: diff.hard ? 'hard' : 'easy', shapeCells });
 
   let chosen = null, best = null, bestScore = Infinity;
-  for (let attempt = 0; attempt < 12; attempt++) {
+  for (let attempt = 0; attempt < 22; attempt++) {
     const rng = mulberry32(1000 + levelIndex * 7919 + attempt * 104729);
     // if early passes overshoot the chain cap, force longer chains (=fewer)
-    const maxLen = diff.maxLen + (attempt >= 6 ? 4 : 0) + (attempt >= 11 ? 4 : 0);
+    const maxLen = diff.maxLen + (attempt >= 6 ? 4 : 0) + (attempt >= 12 ? 4 : 0) + (attempt >= 18 ? 4 : 0);
     const raw = carvePaths(mask, rows, cols, rng, MIN_CHAIN, maxLen, diff.fill, diff.straightBias);
     const kept = raw.filter(p => p.length >= KEEP_MIN);
     if (kept.length < 3) continue;
@@ -1310,6 +1344,7 @@ function _generateLevel(levelIndex) {
       return { img: k.img, color: k.color, dark: k.dark, treat: k.treat, turnedHead: p.turnedHead,
         cells: p.map(c => ({ r: c.r, c: c.c, dir: c.dir })) };
     });
+    if (chains.some(ch => headHitsOwnBody(ch.cells, rows, cols))) continue; // no self-blocking U-turns
     if (!verifyPeelable(chains, rows, cols)) continue; // guaranteed by carve, but double-check
 
     const turned = chains.reduce((n, ch) => n + (ch.turnedHead ? 1 : 0), 0);
@@ -1699,6 +1734,9 @@ function rayIsClear(chain) {
     if (other === chain) continue;
     for (const cell of other.cells) occ.add(cell.r + ',' + cell.c);
   }
+  // the chain's own body blocks its exit too - a head pointing back across its
+  // own cells can never slide free (defensive; the generator no longer makes these)
+  for (let i = 0; i < chain.cells.length - 1; i++) occ.add(chain.cells[i].r + ',' + chain.cells[i].c);
   for (const step of headRay(chain)) {
     if (!step.inGrid) return true;
     if (occ.has(step.r + ',' + step.c)) return false;

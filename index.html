@@ -218,6 +218,15 @@
   .win-btns button .wi { font-size: 18px; }
   .win-btns button.primary { background: var(--accent); color: #fff; }
   .win-btns button:active { transform: scale(0.95); }
+  .fail-hearts { display: flex; justify-content: center; gap: 8px; font-size: 30px; margin: 6px 0 4px; color: #ff4d5e; }
+  .fail-hearts .ico { width: 1em; height: 1em; }
+  .revive-btn { width: 100%; border: none; border-radius: 16px; padding: 14px 12px; margin-bottom: 10px;
+    background: var(--right); color: #fff; font-weight: 800; font-size: 15px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .revive-btn .wi { font-size: 16px; }
+  .revive-btn:active { transform: scale(0.97); }
+  .ad-tag { font-size: 10px; font-weight: 800; letter-spacing: .08em; background: rgba(255,255,255,0.25);
+    border-radius: 6px; padding: 2px 6px; }
 </style>
 </head>
 <body>
@@ -331,11 +340,13 @@
 
   <div class="win-overlay" id="failOverlay" hidden>
     <div class="win-card">
-      <div class="win-title">Out of hearts</div>
-      <div class="win-sub">This level got the better of you.</div>
+      <div class="win-title">Continue?</div>
+      <div class="fail-hearts" id="failHearts"></div>
+      <div class="win-sub" id="failSub">Watch a short ad to revive with an extra life.</div>
+      <button class="revive-btn" id="failRevive"><span class="wi" data-ico="next"></span>Watch ad &amp; revive<span class="ad-tag">Ad</span></button>
       <div class="win-btns">
+        <button id="failRestart"><span class="wi" data-ico="retry"></span>Restart</button>
         <button id="failHome"><span class="wi" data-ico="home"></span>Home</button>
-        <button id="failRetry" class="primary"><span class="wi" data-ico="retry"></span>Retry</button>
       </div>
     </div>
   </div>
@@ -866,6 +877,7 @@ let hearts = 3;
 let busy = false;
 let lostAnyHeart = false;
 let levelFailed = false;
+let revivedThisLevel = false;
 let currentLevel = save.level;
 
 // ---- DOM refs ----
@@ -970,6 +982,7 @@ function buildBoard() {
   levelData.chains.forEach((ch, i) => { ch.uid = i; });
   animating.clear();
   busy = false;
+  revivedThisLevel = false;
   if (typeof hideFailOverlay === 'function') hideFailOverlay();
   hearts = 3;
   lostAnyHeart = false;
@@ -1212,9 +1225,12 @@ async function slideChainBlocked(chain) {
   const pathEl = document.getElementById('chain-path-' + chain.uid);
   const decoEl = document.getElementById('chain-deco-' + chain.uid);
   await new Promise((resolve) => {
-    let start = 0;
-    const dur = k / CELLS_PER_MS; // out
+    let start = 0, done = false;
+    const dur = k / CELLS_PER_MS; // out; back takes the same
+    const finish = () => { if (!done) { done = true; clearTimeout(safety); resolve(); } };
+    const safety = setTimeout(finish, dur * 2 + 1500); // never hang if rAF is starved
     const frame = (now) => {
+      if (done) return;
       if (!start) start = now;
       const e = now - start;
       const tri = e < dur ? (e / dur) : Math.max(0, 2 - e / dur); // 0 -> 1 -> 0
@@ -1223,7 +1239,7 @@ async function slideChainBlocked(chain) {
       if (pathEl) pathEl.setAttribute('d', parts.d);
       if (decoEl) decoEl.innerHTML = parts.deco;
       if (e < dur * 2) requestAnimationFrame(frame);
-      else resolve();
+      else finish();
     };
     requestAnimationFrame(frame);
   });
@@ -1247,8 +1263,11 @@ async function slideChainOut(chain) {
   const decoEl = document.getElementById('chain-deco-' + chain.uid);
 
   await new Promise((resolve) => {
-    let start = 0;
+    let start = 0, done = false;
+    const finish = () => { if (!done) { done = true; clearTimeout(safety); resolve(); } };
+    const safety = setTimeout(finish, steps / CELLS_PER_MS + 1500); // never hang if rAF is starved
     const frame = (now) => {
+      if (done) return;
       if (!start) start = now;
       const t = Math.min(steps, (now - start) * CELLS_PER_MS); // fractional cell progress
       const lo = Math.floor(t), frac = t - lo;
@@ -1261,7 +1280,7 @@ async function slideChainOut(chain) {
       if (pathEl) pathEl.setAttribute('d', parts.d);
       if (decoEl) decoEl.innerHTML = parts.deco;
       if (t < steps) requestAnimationFrame(frame);
-      else resolve();
+      else finish();
     };
     requestAnimationFrame(frame);
   });
@@ -1389,11 +1408,33 @@ document.getElementById('winHome').addEventListener('click', () => {
   showScreen('home');
 });
 
-// ---- fail overlay (out of hearts) ----
+// ---- fail overlay (out of hearts) - offers an ad-revive for +1 life ----
 const failOverlay = document.getElementById('failOverlay');
-function showFailOverlay() { failOverlay.hidden = false; }
+function showFailOverlay() {
+  const fh = document.getElementById('failHearts');
+  fh.innerHTML = ico('heart') + ico('heart') + ico('heart');
+  const rev = document.getElementById('failRevive');
+  const sub = document.getElementById('failSub');
+  if (revivedThisLevel) {
+    rev.style.display = 'none';
+    sub.textContent = 'Out of lives on this level.';
+  } else {
+    rev.style.display = '';
+    sub.textContent = 'Watch a short ad to revive with an extra life.';
+  }
+  failOverlay.hidden = false;
+}
 function hideFailOverlay() { failOverlay.hidden = true; }
-document.getElementById('failRetry').addEventListener('click', () => { hideFailOverlay(); buildBoard(); });
+document.getElementById('failRevive').addEventListener('click', () => {
+  // TODO: play a rewarded ad here; on reward -> revive
+  revivedThisLevel = true;
+  hearts = 1;
+  levelFailed = false;
+  renderHearts();
+  hideFailOverlay();
+  setStatus('', '');
+});
+document.getElementById('failRestart').addEventListener('click', () => { hideFailOverlay(); buildBoard(); });
 document.getElementById('failHome').addEventListener('click', () => { hideFailOverlay(); showScreen('home'); });
 
 nextBtn.addEventListener('click', () => buildBoard());

@@ -100,10 +100,16 @@
   .level-tag { font-size: 13px; color: var(--sub); font-weight: 700; }
   .progress-bar { height: 4px; background: var(--grid-line); border-radius: 2px; margin: 12px 0 20px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s; }
-  .board-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
-  #grid { display: block; }
+  .board-wrap { flex: 1; display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden; touch-action: none; }
+  #grid { display: block; transform-origin: 0 0; will-change: transform; }
   #grid .hit { cursor: pointer; }
   #grid .hit:active + .arrowhead { opacity: 0.6; }
+  .zoom-btns { position: absolute; right: 6px; bottom: 6px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
+  .zoom-btns button { width: 34px; height: 34px; border: none; border-radius: 10px;
+    background: var(--card, #fff); color: var(--text, #333); font-size: 20px; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.14); cursor: pointer; line-height: 1; }
+  .zoom-btns button:active { transform: scale(0.94); }
   .status { min-height: 22px; font-weight: 700; text-align: center; margin-top: 10px; font-size: 14px; }
   .status.win { color: var(--right); }
   .status.fail { color: var(--wrong); }
@@ -179,7 +185,13 @@
       <div class="level-tag" id="levelTag">Level 1</div>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-    <div class="board-wrap"><div id="grid"></div></div>
+    <div class="board-wrap">
+      <div id="grid"></div>
+      <div class="zoom-btns">
+        <button id="zoomIn" aria-label="Zoom in">&plus;</button>
+        <button id="zoomOut" aria-label="Zoom out">&minus;</button>
+      </div>
+    </div>
     <div class="status" id="status"></div>
     <button class="next-btn" id="nextBtn">Next level &rarr;</button>
   </section>
@@ -658,6 +670,7 @@ function refreshBadges() {
 let hearts = 3;
 let busy = false;
 let lostAnyHeart = false;
+let levelFailed = false;
 let currentLevel = save.level;
 
 // ---- DOM refs ----
@@ -717,7 +730,7 @@ function chainParts(chain, positions) {
 
 // the approved buddy artwork, centred on a cell, a touch larger than the cell
 function buddyImageSVG(url, x, y) {
-  const s = cellSize * 1.5;
+  const s = cellSize * 1.3;
   return `<image href="${url}" x="${(x - s / 2).toFixed(1)}" y="${(y - s / 2).toFixed(1)}"
     width="${s.toFixed(1)}" height="${s.toFixed(1)}" preserveAspectRatio="xMidYMid meet"/>`;
 }
@@ -743,25 +756,107 @@ function buildBoard() {
   levelData = generateLevel(currentLevel);
   hearts = 3;
   lostAnyHeart = false;
+  levelFailed = false;
   cellSize = Math.min(44, Math.floor(300 / levelData.cols));
-  gap = Math.max(2, Math.round(cellSize * 0.09));
+  gap = Math.max(3, Math.round(cellSize * 0.18)); // roomier so neighbouring buddies don't overlap
   statusEl.textContent = '';
   statusEl.className = 'status';
   nextBtn.style.display = 'none';
+  nextBtn.innerHTML = 'Next level &rarr;';
   levelTagEl.textContent = 'Level ' + (currentLevel + 1);
   progressFill.style.width = Math.min(100, ((currentLevel % 10) / 10) * 100) + '%';
-  heartsEl.style.display = 'none';
+  heartsEl.style.display = 'flex';
+  renderHearts();
   moves = 0;
 
   boardW = levelData.cols * cellSize + (levelData.cols - 1) * gap;
   boardH = levelData.rows * cellSize + (levelData.rows - 1) * gap;
-  lineW = Math.max(9, cellSize * 0.5);
+  lineW = Math.max(8, cellSize * 0.46);
 
   renderBoard();
-  setStatus('Tap a buddy to slide it out. Left: ' + levelData.chains.length, '');
+  resetView();
+  setStatus('Tap a buddy to slide it out.', '');
 }
 
 let boardW = 0, boardH = 0, lineW = 12, moves = 0;
+
+// ---- pinch / wheel / button zoom + drag pan on the board ----
+const boardWrap = document.querySelector('.board-wrap');
+const MIN_ZOOM = 0.6, MAX_ZOOM = 3;
+let view = { scale: 1, x: 0, y: 0 };
+let didPan = false;
+
+function applyView() {
+  gridEl.style.transform = 'translate(' + view.x.toFixed(1) + 'px,' + view.y.toFixed(1) + 'px) scale(' + view.scale.toFixed(3) + ')';
+}
+function resetView() { view = { scale: 1, x: 0, y: 0 }; applyView(); }
+
+// zoom by `factor` keeping the board point under (px,py) fixed; px/py are relative to board-wrap
+function zoomAt(factor, px, py) {
+  const rect = boardWrap.getBoundingClientRect();
+  if (px == null) { px = rect.width / 2; py = rect.height / 2; }
+  const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, view.scale * factor));
+  const k = next / view.scale;
+  view.x = px - (px - view.x) * k;
+  view.y = py - (py - view.y) * k;
+  view.scale = next;
+  applyView();
+}
+
+document.getElementById('zoomIn').addEventListener('click', () => zoomAt(1.25));
+document.getElementById('zoomOut').addEventListener('click', () => zoomAt(1 / 1.25));
+
+boardWrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = boardWrap.getBoundingClientRect();
+  zoomAt(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - rect.left, e.clientY - rect.top);
+}, { passive: false });
+
+const pointers = new Map();
+let pinchStart = null; // { dist, cx, cy, scale, vx, vy }
+
+boardWrap.addEventListener('pointerdown', (e) => {
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  didPan = false;
+  if (pointers.size === 2) {
+    const p = [...pointers.values()];
+    pinchStart = {
+      dist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y),
+      scale: view.scale,
+    };
+  }
+});
+boardWrap.addEventListener('pointermove', (e) => {
+  if (!pointers.has(e.pointerId)) return;
+  const prev = pointers.get(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const rect = boardWrap.getBoundingClientRect();
+  if (pointers.size === 2 && pinchStart) {
+    const p = [...pointers.values()];
+    const dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+    const cx = (p[0].x + p[1].x) / 2 - rect.left;
+    const cy = (p[0].y + p[1].y) / 2 - rect.top;
+    const target = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinchStart.scale * dist / pinchStart.dist));
+    zoomAt(target / view.scale, cx, cy);
+    didPan = true;
+  } else if (pointers.size === 1 && (e.buttons || e.pressure)) {
+    const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+    if (Math.abs(dx) + Math.abs(dy) > 0) { view.x += dx; view.y += dy; applyView(); }
+    if (Math.abs(dx) + Math.abs(dy) > 2) didPan = true;
+  }
+});
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinchStart = null;
+}
+boardWrap.addEventListener('pointerup', endPointer);
+boardWrap.addEventListener('pointercancel', endPointer);
+boardWrap.addEventListener('pointerleave', endPointer);
+
+// swallow the click that follows a drag so it doesn't count as a buddy tap
+boardWrap.addEventListener('click', (e) => {
+  if (didPan) { e.stopPropagation(); e.preventDefault(); didPan = false; }
+}, true);
 
 // draw a single chain: coloured trail + bold tail arrow + buddy face at the head
 function chainSVG(chain, idx) {
@@ -825,15 +920,25 @@ function rayIsClear(chain) {
 }
 
 async function onTap(idx) {
-  if (busy) return;
+  if (busy || levelFailed) return;
   const chain = levelData.chains[idx];
   if (!chain) return;
   busy = true;
 
   if (!rayIsClear(chain)) {
     await shakeChain(idx);
-    setStatus('Blocked - clear another buddy first.', 'fail');
+    hearts = Math.max(0, hearts - 1);
+    lostAnyHeart = true;
+    renderHearts();
     vibrate(40);
+    if (hearts === 0) {
+      levelFailed = true;
+      setStatus('Out of hearts! Tap Retry.', 'fail');
+      nextBtn.innerHTML = 'Retry level &#8635;';
+      nextBtn.style.display = 'inline-block';
+    } else {
+      setStatus('Blocked - try another buddy.', 'fail');
+    }
     busy = false;
     return;
   }
@@ -847,7 +952,7 @@ async function onTap(idx) {
   if (levelData.chains.length === 0) {
     await win();
   } else {
-    setStatus('Nice! Left: ' + levelData.chains.length, 'win');
+    setStatus('Nice!', 'win');
   }
   busy = false;
 }

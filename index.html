@@ -69,7 +69,16 @@
     justify-content: center;
     gap: 6px;
   }
-  .buddy-avatar { font-size: 74px; line-height: 1; margin-bottom: 6px; }
+  .buddy-avatar { width: 132px; height: 132px; line-height: 1; margin-bottom: 2px; }
+  .buddy-avatar img { width: 100%; height: 100%; object-fit: contain; }
+  .ico { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; flex: none; }
+  [data-ico] { display: inline-flex; line-height: 0; }
+  .wordmark .tri { font-size: 30px; color: var(--accent); }
+  .streak-chip .flameico, .win-streak .flame { font-size: 20px; color: #ff8a1f; }
+  .nav-btn .ic { font-size: 22px; }
+  .settings-row .icon { font-size: 19px; color: var(--sub); }
+  .win-btns button .wi { font-size: 19px; }
+  .badge-card .em .ico { width: 30px; height: 30px; }
   .wordmark { font-size: 40px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 6px; }
   .wordmark .tri { color: var(--accent); font-size: 32px; }
   .level-line { font-size: 22px; font-weight: 700; color: var(--accent); }
@@ -95,8 +104,9 @@
     border: none; background: var(--accent-soft); color: var(--ink);
     font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none;
   }
-  .hearts { display: flex; gap: 6px; font-size: 22px; }
-  .heart.lost { opacity: 0.2; }
+  .hearts { display: flex; gap: 5px; font-size: 22px; }
+  .heart { color: #ff4d5e; line-height: 0; }
+  .heart.lost { color: var(--grid-line); }
   .level-tag { font-size: 13px; color: var(--sub); font-weight: 700; }
   .progress-bar { height: 4px; background: var(--grid-line); border-radius: 2px; margin: 12px 0 20px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s; }
@@ -206,10 +216,10 @@
 
   <!-- HOME -->
   <section class="screen active" id="screen-home">
-    <div class="streak-chip">🔥 <span id="streakNum">1</span></div>
+    <div class="streak-chip"><span class="flameico" data-ico="flame"></span> <span id="streakNum">1</span></div>
     <div class="home-mid">
-      <div class="buddy-avatar" id="buddyAvatar">🦊</div>
-      <div class="wordmark"><span class="tri">▲</span>Maze Buddies</div>
+      <div class="buddy-avatar" id="buddyAvatar"><img src="design/characters/buddies/rusty.png" alt=""></div>
+      <div class="wordmark"><span class="tri" data-ico="tri"></span>Maze Buddies</div>
       <div class="level-line">Level <span id="homeLevel">1</span></div>
       <div class="buddy-name" id="buddyName">Foxy</div>
     </div>
@@ -254,41 +264,41 @@
     <div class="screen-title">Settings</div>
     <div class="settings-group">
       <div class="settings-row">
-        <div class="left"><span class="icon">🌐</span>Language</div>
+        <div class="left"><span class="icon" data-ico="globe"></span>Language</div>
         <div class="val">English &rsaquo;</div>
       </div>
       <div class="settings-row">
-        <div class="left"><span class="icon">📳</span>Vibrations</div>
+        <div class="left"><span class="icon" data-ico="vib"></span>Vibrations</div>
         <button class="toggle on" id="toggleVibration"><span class="knob"></span></button>
       </div>
       <div class="settings-row">
-        <div class="left"><span class="icon">🔊</span>Sounds</div>
+        <div class="left"><span class="icon" data-ico="sound"></span>Sounds</div>
         <button class="toggle on" id="toggleSound"><span class="knob"></span></button>
       </div>
       <div class="settings-row">
-        <div class="left"><span class="icon">🌙</span>Dark mode</div>
+        <div class="left"><span class="icon" data-ico="moon"></span>Dark mode</div>
         <button class="toggle" id="toggleDark"><span class="knob"></span></button>
       </div>
     </div>
     <div class="settings-group">
-      <div class="settings-row"><div class="left"><span class="icon">🚫</span>Remove Ads</div><div class="val">soon</div></div>
-      <div class="settings-row"><div class="left"><span class="icon">🔄</span>Restore purchases</div></div>
+      <div class="settings-row"><div class="left"><span class="icon" data-ico="ban"></span>Remove Ads</div><div class="val">soon</div></div>
+      <div class="settings-row"><div class="left"><span class="icon" data-ico="retry"></span>Restore purchases</div></div>
     </div>
     <div class="settings-group">
-      <div class="settings-row"><div class="left"><span class="icon">⭐</span>Rate us</div></div>
-      <div class="settings-row"><div class="left"><span class="icon">✏️</span>Write us</div></div>
+      <div class="settings-row"><div class="left"><span class="icon" data-ico="star"></span>Rate us</div></div>
+      <div class="settings-row"><div class="left"><span class="icon" data-ico="pencil"></span>Write us</div></div>
     </div>
     <div class="settings-group">
-      <div class="settings-row"><div class="left"><span class="icon">📄</span>Privacy</div></div>
-      <div class="settings-row"><div class="left"><span class="icon">ℹ️</span>Terms of Service</div></div>
+      <div class="settings-row"><div class="left"><span class="icon" data-ico="doc"></span>Privacy</div></div>
+      <div class="settings-row"><div class="left"><span class="icon" data-ico="info"></span>Terms of Service</div></div>
     </div>
   </section>
 
   <nav class="bottom-nav">
-    <button class="nav-btn active" data-nav="home"><span class="ic">🏠</span>Home</button>
-    <button class="nav-btn" data-nav="game" id="navLevel"><span class="ic">🔒</span>Level</button>
-    <button class="nav-btn" data-nav="collection"><span class="ic">🏆</span>Collection</button>
-    <button class="nav-btn" data-nav="settings"><span class="ic">⚙️</span>Settings</button>
+    <button class="nav-btn active" data-nav="home"><span class="ic" data-ico="home"></span>Home</button>
+    <button class="nav-btn" data-nav="game" id="navLevel"><span class="ic" data-ico="lock"></span>Level</button>
+    <button class="nav-btn" data-nav="collection"><span class="ic" data-ico="trophy"></span>Collection</button>
+    <button class="nav-btn" data-nav="settings"><span class="ic" data-ico="gear"></span>Settings</button>
   </nav>
 
   <canvas id="fx"></canvas>
@@ -297,13 +307,13 @@
       <div class="win-title">Level clear!</div>
       <div class="win-sub" id="winSub">0 moves.</div>
       <div class="win-streak">
-        <span class="flame">🔥</span><span class="stxt" id="winStreakTxt">1 day streak</span>
+        <span class="flame" data-ico="flame"></span><span class="stxt" id="winStreakTxt">1 day streak</span>
         <div class="week-strip" id="weekStrip"></div>
       </div>
       <div class="win-btns">
-        <button id="winHome"><span class="wi">🏠</span>Home</button>
-        <button id="winRetry"><span class="wi">↻</span>Retry</button>
-        <button id="winNext" class="primary"><span class="wi">▶</span>Next</button>
+        <button id="winHome"><span class="wi" data-ico="home"></span>Home</button>
+        <button id="winRetry"><span class="wi" data-ico="retry"></span>Retry</button>
+        <button id="winNext" class="primary"><span class="wi" data-ico="next"></span>Next</button>
       </div>
     </div>
   </div>
@@ -313,6 +323,37 @@
 <script src="buddies-data.js"></script>
 <script>
 "use strict";
+
+/* ---- house icon set (our style, no system emoji) ------------------------- */
+const ICO = {
+  heart: '<path d="M12 21.3l-1.5-1.4C5.4 15.2 2 12.1 2 8.3 2 5.4 4.3 3 7.2 3c1.7 0 3.4.8 4.8 2.4C13.4 3.8 15.1 3 16.8 3 19.7 3 22 5.4 22 8.3c0 3.8-3.4 6.9-8.5 11.6L12 21.3z"/>',
+  flame: '<path d="M12 2c.6 3.4 3.8 4.9 3.8 8.6A3.9 3.9 0 0 1 8 10.8c0-1.4.7-2.4.9-2.6.1 1 .8 1.8 1.7 1.8 1.2 0 1.6-1.3 1.2-2.7C11.1 4.8 12 3.3 12 2z"/><path d="M12 17.5a2 2 0 0 1-2-2c0-1 .8-1.8.8-1.8.2.7.8 1 1.2 1 .7 0 1.2-.6 1.2-1.3 0 1.8-.6 4.1-1.2 4.1z" opacity=".55"/>',
+  house: '<path d="M3 11.5 12 4l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  next: '<path d="M8 5v14l11-7z"/>',
+  tri: '<path d="M12 4l9 15H3z"/>',
+  retry: '<path d="M12 4V1L7 5l5 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/>',
+  home: '<path d="M3 11.5 12 4l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  lock: '<path d="M6 10V8a6 6 0 1 1 12 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h8V8a4 4 0 0 0-8 0z"/>',
+  trophy: '<path d="M6 4h12v3a4 4 0 0 1-3 3.87V13h2a1 1 0 0 1 0 2H7a1 1 0 0 1 0-2h2v-2.13A4 4 0 0 1 6 7zM4 5h1v1.7A2 2 0 0 1 4 5zm15 0h1a2 2 0 0 1-1 1.7zM8 18h8v2H8z"/>',
+  gear: '<path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5-2-1.5.4-2.4-2.2-1-1.5-1.9L12 5.7 9.8 5.2 8.3 7.1l-2.2 1L6.5 10.5 4.5 12l2 1.5-.4 2.4 2.2 1 1.5 1.9 2.2-.5 2.2.5 1.5-1.9 2.2-1-.4-2.4z"/>',
+  globe: '<path fill="none" stroke="currentColor" stroke-width="2" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
+  vib: '<rect x="8.5" y="4" width="7" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 9v6M20 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  sound: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  moon: '<path d="M13.5 3A9 9 0 1 0 21 14 7 7 0 0 1 13.5 3z"/>',
+  ban: '<path fill="none" stroke="currentColor" stroke-width="2" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM6 6l12 12"/>',
+  star: '<path d="M12 3l2.7 5.4 6 .9-4.3 4.2 1 6-5.4-2.8L6.6 19.7l1-6L3.3 9.3l6-.9z"/>',
+  pencil: '<path d="M4 20l1.2-4.2L15.8 5.2l3 3L8.2 18.8 4 20z"/>',
+  doc: '<path fill="none" stroke="currentColor" stroke-width="2" d="M6 3h8l4 4v14H6zM9 12h6M9 16h6"/>',
+  info: '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v6M12 7.5v.01"/>',
+  medal: '<path d="M8 2 5 8l3 1 4-2 4 2 3-1-3-6zM12 9a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm0 3 1.1 2.2 2.4.3-1.7 1.7.4 2.4-2.2-1.2-2.2 1.2.4-2.4L8.5 14.5l2.4-.3z"/>',
+  gem: '<path d="M6 3h12l3.5 5.5L12 22 2.5 8.5z"/>',
+  paw: '<path d="M7 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm10 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4zM9.5 6.5A2 2 0 1 1 6 6a2 2 0 0 1 3.5.5zm8.5 0A2 2 0 1 1 14.5 6 2 2 0 0 1 18 6.5zM12 12c3 0 5 2.5 5 4.5S15 20 12 20s-5-1.5-5-3.5S9 12 12 12z"/>',
+  crown: '<path d="M3 8l4 4 5-7 5 7 4-4v11H3z"/>',
+};
+function ico(name, twoTone) {
+  const p = ICO[name] || '';
+  return '<svg class="ico" viewBox="0 0 24 24" fill="' + (twoTone ? 'currentColor' : 'currentColor') + '" aria-hidden="true">' + p + '</svg>';
+}
 
 /* ============================================================
    Maze Buddies - bare-bones core loop (GATE 1 build)
@@ -787,12 +828,12 @@ function updateDayStreak() {
 
 // ---- badges ----
 const BADGE_DEFS = [
-  { id: 'trailblazer', em: '🥉', name: 'Trailblazer', check: s => s.level >= 10 },
-  { id: 'legend',      em: '🏅', name: 'Maze Legend', check: s => s.level >= 20 },
-  { id: 'unstoppable', em: '🔥', name: 'Unstoppable', check: s => s.bestWinStreak >= 5 },
-  { id: 'perfect',     em: '💎', name: 'Perfect Run', check: s => s.perfectRuns >= 5 },
-  { id: 'collector',   em: '🐾', name: 'Buddy Collector', check: s => s.level >= 50 },
-  { id: 'master',      em: '👑', name: 'Maze Master', check: s => s.level >= 50 },
+  { id: 'trailblazer', em: 'medal',  name: 'Trailblazer', check: s => s.level >= 10 },
+  { id: 'legend',      em: 'trophy', name: 'Maze Legend', check: s => s.level >= 20 },
+  { id: 'unstoppable', em: 'flame',  name: 'Unstoppable', check: s => s.bestWinStreak >= 5 },
+  { id: 'perfect',     em: 'gem',    name: 'Perfect Run', check: s => s.perfectRuns >= 5 },
+  { id: 'collector',   em: 'paw',    name: 'Buddy Collector', check: s => s.level >= 50 },
+  { id: 'master',      em: 'crown',  name: 'Maze Master', check: s => s.level >= 50 },
 ];
 function refreshBadges() {
   for (const b of BADGE_DEFS) if (b.check(save)) save.badges[b.id] = true;
@@ -829,10 +870,17 @@ function renderHearts() {
   heartsEl.innerHTML = '';
   for (let i = 0; i < 3; i++) {
     const span = document.createElement('span');
-    span.textContent = '❤';
+    span.innerHTML = ico('heart');
     span.className = 'heart' + (i < hearts ? '' : ' lost');
     heartsEl.appendChild(span);
   }
+}
+
+// swap every data-ico placeholder for its inline svg (our style, no system emoji)
+function paintIcons(root) {
+  (root || document).querySelectorAll('[data-ico]').forEach(el => {
+    if (!el.firstElementChild) el.innerHTML = ico(el.dataset.ico);
+  });
 }
 
 let levelData = null;
@@ -1297,7 +1345,7 @@ function renderCollection() {
     const unlocked = !!save.badges[b.id];
     const div = document.createElement('div');
     div.className = 'badge-card' + (unlocked ? ' unlocked' : '');
-    div.innerHTML = `<div class="em">${b.em}</div><div class="nm">${b.name}</div>`;
+    div.innerHTML = `<div class="em">${ico(b.em)}</div><div class="nm">${b.name}</div>`;
     row.appendChild(div);
   }
 }
@@ -1321,6 +1369,7 @@ wireToggle('toggleDark', 'darkMode', on => {
 if (save.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
 
 // ---- boot ----
+paintIcons();
 renderHome();
 </script>
 </body>

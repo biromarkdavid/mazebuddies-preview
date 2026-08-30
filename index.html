@@ -493,6 +493,26 @@
 
 </div>
 
+<script src="nuvugames-client.js?v=1"></script>
+<script>
+// --- backend / cross-device save (optional; the game runs fully offline) ------
+window.MB_CONFIG = {
+  apiBase: 'https://mazebuddies-api-production.up.railway.app',
+  googleWebClientId: '',   // filled in once Steve creates the OAuth clients
+  appleServiceId: '',
+  appleRedirectUri: 'https://biromarkdavid.github.io/mazebuddies-preview/',
+};
+try {
+  if (window.NuvuBackend) {
+    NuvuBackend.configure({
+      baseUrl: MB_CONFIG.apiBase,
+      googleWebClientId: MB_CONFIG.googleWebClientId,
+      appleServiceId: MB_CONFIG.appleServiceId,
+      appleRedirectUri: MB_CONFIG.appleRedirectUri,
+    });
+  }
+} catch (e) {}
+</script>
 <script>
 // buddy roster inlined (was buddies-data.js) so there's no separate file to cache
 window.MB_BUDDIES = [
@@ -1716,6 +1736,7 @@ async function win() {
   refreshBadges();
   updateDayStreak();
   persist();
+  pushSave(); // mirror to the backend if the player is signed in / online
 
   showWinOverlay();
 }
@@ -2001,15 +2022,92 @@ document.querySelectorAll('.settings-row[data-modal]').forEach(row =>
   row.addEventListener('click', () => openSheet(row.dataset.modal)));
 document.getElementById('rateHigh').addEventListener('click', () => { save.rated = true; persist(); closeSheet(); });
 document.getElementById('rateLow').addEventListener('click', closeSheet);
-document.getElementById('signApple').addEventListener('click', () => { setAccount(true); closeSheet(); });
-document.getElementById('signGoogle').addEventListener('click', () => { setAccount(true); closeSheet(); });
 document.getElementById('raBuy').addEventListener('click', () => { save.noAds = true; persist(); closeSheet(); });
 const restoreRow = document.getElementById('restoreRow');
 if (restoreRow) restoreRow.addEventListener('click', () => {}); // TODO: restore purchases
 function setAccount(on) {
   save.account = on; persist();
   const v = document.getElementById('accountVal');
-  if (v) v.innerHTML = t(on ? 'on' : 'off') + ' ›';
+  const prov = on && window.NuvuBackend && NuvuBackend.signedInWith && NuvuBackend.signedInWith();
+  if (v) v.innerHTML = (prov ? cap(prov) : t(on ? 'on' : 'off')) + ' ›';
+}
+
+// ---- cross-device save (all no-ops if the backend is unreachable) -----------
+const NB = window.NuvuBackend || null;
+let serverVersion = 0;
+let _pushTimer = null;
+
+// same "furthest progress wins" rule the backend uses, applied client-side
+function mergeProgress(local, remote) {
+  if (local == null) return remote;
+  if (remote == null) return local;
+  if (typeof local === 'number' && typeof remote === 'number') return Math.max(local, remote);
+  if (typeof local === 'boolean' && typeof remote === 'boolean') return local || remote;
+  if (Array.isArray(local) && Array.isArray(remote)) return Array.from(new Set(local.concat(remote)));
+  if (local && remote && typeof local === 'object' && typeof remote === 'object') {
+    const out = Object.assign({}, local);
+    for (const k of Object.keys(remote)) out[k] = k in local ? mergeProgress(local[k], remote[k]) : remote[k];
+    return out;
+  }
+  return local; // scalars (lang, dates): keep the value from this device
+}
+function adoptRemote(res) {
+  if (!res || !res.blob) return;
+  save = mergeProgress(save, res.blob);
+  serverVersion = res.version || 0;
+  persist();
+  currentLevel = save.level;
+  renderHome();
+}
+function pushSave() {
+  if (!NB || !NB.isConfigured()) return;
+  clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(function () {
+    NB.saveState(serverVersion, save).then(function (r) {
+      if (!r) return;
+      if (r.conflict && r.current) { adoptRemote(r.current); NB.saveState(serverVersion, save); }
+      else if (r.version != null) serverVersion = r.version;
+    });
+  }, 1400);
+}
+function syncFromServer() {
+  if (!NB || !NB.isConfigured()) return;
+  NB.ready().then(function () { return NB.loadSave(); }).then(adoptRemote).catch(function () {});
+}
+
+function signIn(provider) {
+  if (!NB) { toast('Sign-in unavailable'); return; }
+  const btnId = provider === 'apple' ? 'signApple' : 'signGoogle';
+  const btn = document.getElementById(btnId);
+  btn.disabled = true;
+  (provider === 'apple' ? NB.signInApple() : NB.signInGoogle()).then(function (res) {
+    adoptRemote(res.save);
+    setAccount(true);
+    closeSheet();
+    toast(res.isNew ? 'Signed in' : 'Progress restored');
+    pushSave();
+  }).catch(function (err) {
+    toast(err && /cancel/i.test(err.message || '') ? 'Sign-in cancelled' : 'Sign-in unavailable');
+  }).then(function () { btn.disabled = false; });
+}
+document.getElementById('signApple').addEventListener('click', function () { signIn('apple'); });
+document.getElementById('signGoogle').addEventListener('click', function () { signIn('google'); });
+
+// small English-only toast for account feedback
+function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:80;' +
+      'background:var(--ink);color:var(--bg);font-weight:800;font-size:13px;padding:10px 18px;border-radius:999px;' +
+      'box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;transition:opacity .2s;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function () { el.style.opacity = '0'; }, 1900);
 }
 
 // ---- settings ----
@@ -2034,6 +2132,8 @@ if (save.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
 paintIcons();
 applyLang();
 renderHome();
+// if signed in / online, pull the server save and merge it in
+setTimeout(syncFromServer, 300);
 </script>
 </body>
 </html>

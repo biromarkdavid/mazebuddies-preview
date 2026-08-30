@@ -929,7 +929,7 @@ let levelData = null;
 let cellSize = 44, gap = 4;
 
 function pt(r, c) {
-  return { x: c * (cellSize + gap) + cellSize / 2, y: r * (cellSize + gap) + cellSize / 2 };
+  return { x: boardPad + c * (cellSize + gap) + cellSize / 2, y: boardPad + r * (cellSize + gap) + cellSize / 2 };
 }
 
 // geometry for a chain given the current segment positions (head last):
@@ -1007,8 +1007,11 @@ function buildBoard() {
   renderHearts();
   moves = 0;
 
-  boardW = levelData.cols * cellSize + (levelData.cols - 1) * gap;
-  boardH = levelData.rows * cellSize + (levelData.rows - 1) * gap;
+  // padding around the grid so a buddy sprite on an edge cell isn't clipped by
+  // .board-wrap's overflow:hidden (which we need for pan/zoom)
+  boardPad = Math.round(cellSize * 0.6);
+  boardW = levelData.cols * cellSize + (levelData.cols - 1) * gap + boardPad * 2;
+  boardH = levelData.rows * cellSize + (levelData.rows - 1) * gap + boardPad * 2;
   lineW = Math.max(8, cellSize * 0.46);
 
   renderBoard();
@@ -1016,7 +1019,7 @@ function buildBoard() {
   setStatus('Tap a buddy to slide it out.', '');
 }
 
-let boardW = 0, boardH = 0, lineW = 12, moves = 0;
+let boardW = 0, boardH = 0, boardPad = 0, lineW = 12, moves = 0;
 
 // ---- pinch / wheel / button zoom + drag pan on the board ----
 const boardWrap = document.querySelector('.board-wrap');

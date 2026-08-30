@@ -49,8 +49,22 @@
     flex-direction: column;
     position: relative;
   }
-  .screen { display: none; flex: 1; min-height: 0; flex-direction: column; padding: 18px 20px 10px; overflow-y: auto; }
+  .screen { display: none; flex: 1; min-height: 0; flex-direction: column; padding: 18px 20px 20px; overflow-y: auto; position: relative; }
   .screen.active { display: flex; }
+  .corner-btn { position: absolute; top: 14px; width: 44px; height: 44px; border: none; border-radius: 14px;
+    background: var(--panel); box-shadow: 0 2px 10px rgba(0,0,0,0.12); color: var(--ink);
+    display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; z-index: 3; }
+  .corner-btn.tl { left: 16px; }
+  .corner-btn.tr { right: 16px; }
+  .corner-btn:active { transform: scale(0.93); }
+  .screen-x { position: absolute; top: 12px; right: 16px; width: 40px; height: 40px; border: none; border-radius: 12px;
+    background: var(--accent-soft); color: var(--sub); font-size: 26px; line-height: 1; cursor: pointer; z-index: 3; }
+  .screen-x:active { transform: scale(0.93); }
+  .rate-cta { margin-top: auto; width: 100%; border: none; border-radius: 18px; padding: 16px;
+    background: var(--accent); color: #fff; font-weight: 800; font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px -6px var(--accent); }
+  .rate-cta .star { color: #ffd23f; font-size: 20px; }
+  .rate-cta:active { transform: scale(0.98); }
 
   /* ---- Home ---- */
   .streak-chip {
@@ -321,6 +335,8 @@
 
   <!-- HOME -->
   <section class="screen active" id="screen-home">
+    <button class="corner-btn tl" id="openCollection" aria-label="Collection"><span data-ico="trophy"></span></button>
+    <button class="corner-btn tr" id="openSettings" aria-label="Settings"><span data-ico="gear"></span></button>
     <div class="streak-chip"><span class="flameico" data-ico="flame"></span> <span id="streakNum">1</span></div>
     <div class="home-mid">
       <div class="buddy-avatar" id="buddyAvatar"><img src="design/characters/buddies/rusty.png" alt=""></div>
@@ -355,6 +371,7 @@
 
   <!-- COLLECTION -->
   <section class="screen" id="screen-collection">
+    <button class="screen-x" data-home aria-label="Close">&times;</button>
     <div class="screen-title" data-i18n="collection">Collection</div>
     <div class="section-title" data-i18n="records">Records</div>
     <div class="record-row" id="recordRow"></div>
@@ -366,6 +383,7 @@
 
   <!-- SETTINGS -->
   <section class="screen" id="screen-settings">
+    <button class="screen-x" data-home aria-label="Close">&times;</button>
     <div class="screen-title" data-i18n="settings">Settings</div>
     <div class="settings-group">
       <div class="settings-row tappable" data-modal="language">
@@ -392,23 +410,11 @@
       </div>
     </div>
     <div class="settings-group">
-      <div class="settings-row rate-row tappable" data-modal="rate">
-        <div class="left"><span class="icon" data-ico="star"></span><span data-i18n="rateUs">Rate us</span></div>
-        <div class="val">&rsaquo;</div>
-      </div>
-    </div>
-    <div class="settings-group">
       <div class="settings-row tappable" data-modal="removeads"><div class="left"><span class="icon" data-ico="ban"></span><span data-i18n="removeAds">Remove Ads</span></div><div class="val">&rsaquo;</div></div>
       <div class="settings-row tappable" id="restoreRow"><div class="left"><span class="icon" data-ico="retry"></span><span data-i18n="restorePurch">Restore purchases</span></div></div>
     </div>
+    <button class="rate-cta" data-modal="rate"><span class="star" data-ico="star"></span><span data-i18n="rateUs">Rate us</span></button>
   </section>
-
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-nav="home"><span class="ic" data-ico="home"></span><span data-i18n="navHome">Home</span></button>
-    <button class="nav-btn" data-nav="game" id="navLevel"><span class="ic" data-ico="lock"></span><span data-i18n="navLevel">Level</span></button>
-    <button class="nav-btn" data-nav="collection"><span class="ic" data-ico="trophy"></span><span data-i18n="navCollection">Collection</span></button>
-    <button class="nav-btn" data-nav="settings"><span class="ic" data-ico="gear"></span><span data-i18n="navSettings">Settings</span></button>
-  </nav>
 
   <canvas id="fx"></canvas>
   <div class="win-overlay" id="winOverlay" hidden>
@@ -1852,20 +1858,17 @@ backBtn.addEventListener('click', () => showScreen('home'));
 playBtn.addEventListener('click', () => { currentLevel = save.level; showScreen('game'); buildBoard(); });
 
 // ---- navigation ----
+// Home is the hub: trophy (top-left) opens Collection, gear (top-right) opens
+// Settings, both close with the X. There is no bottom tab bar any more.
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === name || (name === 'game' && b.dataset.nav === 'game')));
   if (name === 'home') renderHome();
   if (name === 'collection') renderCollection();
 }
-document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const nav = btn.dataset.nav;
-    if (nav === 'game') { currentLevel = save.level; showScreen('game'); buildBoard(); }
-    else showScreen(nav);
-  });
-});
+document.getElementById('openCollection').addEventListener('click', () => showScreen('collection'));
+document.getElementById('openSettings').addEventListener('click', () => showScreen('settings'));
+document.querySelectorAll('[data-home]').forEach(b => b.addEventListener('click', () => showScreen('home')));
 
 const MB = window.MB_BUDDIES || [{ name: 'rusty' }];
 function featuredBuddy() { return MB[save.level % MB.length]; }

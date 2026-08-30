@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Maze Buddies</title>
 <style>
   :root {
@@ -475,7 +476,31 @@
 
 </div>
 
-<script src="buddies-data.js"></script>
+<script>
+// buddy roster inlined (was buddies-data.js) so there's no separate file to cache
+window.MB_BUDDIES = [
+  { name: "rusty",     color: "#F2762E", treat: "🦴" },
+  { name: "pounce",    color: "#F59B23", treat: "🐟" },
+  { name: "puddles",   color: "#F4C21E", treat: "🐚" },
+  { name: "buzz",      color: "#E0A020", treat: "🍯" },
+  { name: "lily",      color: "#6FBE4E", treat: "🌼" },
+  { name: "shelby",    color: "#3FA98C", treat: "🥬" },
+  { name: "snort",     color: "#EE8FB4", treat: "🍎" },
+  { name: "muffin",    color: "#8C97A3", treat: "🧀" },
+  { name: "dusty",     color: "#AAB2BC", treat: "🥜" },
+  { name: "waddle",    color: "#3F4B5C", treat: "🧊" },
+  { name: "petal",     color: "#2E3440", treat: "🌸" },
+  { name: "piper",     color: "#7A4E24", treat: "🌙" },
+  { name: "ripple",    color: "#B0723F", treat: "🫐" },
+  { name: "prickle",   color: "#8A5A33", treat: "🍄" },
+  { name: "biscuit",   color: "#E0A85A", treat: "🍪" },
+  { name: "scout",     color: "#CE915C", treat: "🎾" },
+  { name: "gumnut",    color: "#CDA06A", treat: "🌾" },
+  { name: "fern",      color: "#E07B3C", treat: "🍃" },
+  { name: "acorn",     color: "#E0761F", treat: "🌰" },
+  { name: "hopscotch", color: "#C9AE85", treat: "🥕" }
+];
+</script>
 <script>
 "use strict";
 
@@ -1151,20 +1176,32 @@ let boardW = 0, boardH = 0, boardPad = 0, lineW = 12, moves = 0;
 
 // ---- pinch / wheel / button zoom + drag pan on the board ----
 const boardWrap = document.querySelector('.board-wrap');
-const MIN_ZOOM = 0.6, MAX_ZOOM = 3;
+let fitScale = 1;                 // scale at which the whole board just fills the viewport
 let view = { scale: 1, x: 0, y: 0 };
 let didPan = false;
 
+function zoomBounds() { return { min: fitScale * 0.85, max: fitScale * 3 }; }
+
 function applyView() {
-  gridEl.style.transform = 'translate(' + view.x.toFixed(1) + 'px,' + view.y.toFixed(1) + 'px) scale(' + view.scale.toFixed(3) + ')';
+  gridEl.style.transform = 'translate(' + view.x.toFixed(1) + 'px,' + view.y.toFixed(1) + 'px) scale(' + view.scale.toFixed(4) + ')';
 }
-function resetView() { view = { scale: 1, x: 0, y: 0 }; applyView(); }
+// fit the board to the viewport and centre it - this fully-zoomed-out state IS the
+// game's edge, so chains slide out exactly to the visible border (no phantom wall)
+function resetView() {
+  const rect = boardWrap.getBoundingClientRect();
+  if (rect.width && boardW) fitScale = Math.min(rect.width / boardW, rect.height / boardH);
+  view.scale = fitScale;
+  view.x = (rect.width - boardW * view.scale) / 2;
+  view.y = (rect.height - boardH * view.scale) / 2;
+  applyView();
+}
 
 // zoom by `factor` keeping the board point under (px,py) fixed; px/py are relative to board-wrap
 function zoomAt(factor, px, py) {
   const rect = boardWrap.getBoundingClientRect();
   if (px == null) { px = rect.width / 2; py = rect.height / 2; }
-  const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, view.scale * factor));
+  const b = zoomBounds();
+  const next = Math.min(b.max, Math.max(b.min, view.scale * factor));
   const k = next / view.scale;
   view.x = px - (px - view.x) * k;
   view.y = py - (py - view.y) * k;
@@ -1205,7 +1242,8 @@ boardWrap.addEventListener('pointermove', (e) => {
     const dist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
     const cx = (p[0].x + p[1].x) / 2 - rect.left;
     const cy = (p[0].y + p[1].y) / 2 - rect.top;
-    const target = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinchStart.scale * dist / pinchStart.dist));
+    const b = zoomBounds();
+    const target = Math.min(b.max, Math.max(b.min, pinchStart.scale * dist / pinchStart.dist));
     zoomAt(target / view.scale, cx, cy);
     didPan = true;
   } else if (pointers.size === 1 && (e.buttons || e.pressure)) {
@@ -1341,6 +1379,13 @@ async function onTap(uid) {
     await win();
   } else if (!levelFailed) {
     setStatus('', '');
+    // safety net: boards are solvable by construction, but if the player ever
+    // reaches a state with chains left and no legal move, quietly reshuffle
+    if (animating.size === 0 && levelData.chains.length && !levelData.chains.some(rayIsClear)) {
+      setStatus('Reshuffling this one...', '');
+      await sleep(700);
+      buildBoard();
+    }
   }
 }
 

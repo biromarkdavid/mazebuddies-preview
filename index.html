@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maze Buddies</title>
+<style>
+  :root {
+    --bg: #f7f8fd;
+    --panel: #ffffff;
+    --ink: #1b1e3d;
+    --sub: #6a6f9a;
+    --accent: #5b6cff;
+    --accent-soft: #e4e6fb;
+    --wrong: #ff4d5e;
+    --right: #34c77b;
+    --grid-empty: transparent;
+    --grid-line: #d6d9f2;
+    --nav-bg: #eef0fb;
+  }
+  [data-theme="dark"] {
+    --bg: #14162b;
+    --panel: #1d2040;
+    --ink: #eef0ff;
+    --sub: #9195c4;
+    --accent: #7c8bff;
+    --accent-soft: #2a2d55;
+    --grid-line: #34386a;
+    --nav-bg: #1a1c38;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overscroll-behavior: none;
+    user-select: none;
+  }
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .screen { display: none; flex: 1; min-height: 0; flex-direction: column; padding: 18px 20px 10px; overflow-y: auto; }
+  .screen.active { display: flex; }
+
+  /* ---- Home ---- */
+  .streak-chip {
+    align-self: center;
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-weight: 700;
+    font-size: 15px;
+    margin-top: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .home-mid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .buddy-avatar { font-size: 74px; line-height: 1; margin-bottom: 6px; }
+  .wordmark { font-size: 40px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 6px; }
+  .wordmark .tri { color: var(--accent); font-size: 32px; }
+  .level-line { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .buddy-name { font-size: 14px; color: var(--sub); font-weight: 600; }
+  .play-btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 14px;
+  }
+  .play-btn:active { opacity: 0.85; }
+
+  /* ---- Game ---- */
+  .game-topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .btn-round {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: none; background: var(--accent-soft); color: var(--ink);
+    font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .hearts { display: flex; gap: 6px; font-size: 22px; }
+  .heart.lost { opacity: 0.2; }
+  .level-tag { font-size: 13px; color: var(--sub); font-weight: 700; }
+  .progress-bar { height: 4px; background: var(--grid-line); border-radius: 2px; margin: 12px 0 20px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s; }
+  .board-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
+  #grid { display: block; }
+  #grid .hit { cursor: pointer; }
+  #grid .hit:active + .arrowhead { opacity: 0.6; }
+  .status { min-height: 22px; font-weight: 700; text-align: center; margin-top: 10px; font-size: 14px; }
+  .status.win { color: var(--right); }
+  .status.fail { color: var(--wrong); }
+  .next-btn {
+    margin-top: 14px; padding: 12px 20px; border-radius: 999px; border: none;
+    background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    display: none;
+  }
+
+  /* ---- Settings ---- */
+  .settings-group { background: var(--panel); border-radius: 16px; padding: 4px 16px; margin-bottom: 14px; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--grid-line); font-size: 15px; font-weight: 600; gap: 10px; }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row .left { display: flex; align-items: center; gap: 12px; }
+  .settings-row .icon { font-size: 18px; width: 22px; text-align: center; }
+  .settings-row .val { color: var(--sub); font-weight: 600; font-size: 14px; }
+  .toggle { width: 46px; height: 27px; border-radius: 999px; background: var(--grid-line); position: relative; border: none; cursor: pointer; flex: none; }
+  .toggle.on { background: var(--accent); }
+  .toggle .knob { position: absolute; top: 2px; left: 2px; width: 23px; height: 23px; border-radius: 50%; background: #fff; transition: left 0.15s; }
+  .toggle.on .knob { left: 21px; }
+  .screen-title { font-size: 22px; font-weight: 800; margin: 4px 0 16px; }
+
+  /* ---- Collection ---- */
+  .section-title { color: var(--accent); font-size: 17px; font-weight: 800; margin: 14px 0 10px; }
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat-card { background: var(--panel); border-radius: 14px; padding: 14px 8px; text-align: center; }
+  .stat-card .num { font-size: 22px; font-weight: 800; }
+  .stat-card .lbl { font-size: 11px; color: var(--sub); font-weight: 700; margin-top: 4px; }
+  .badge-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .badge-card { background: var(--panel); border-radius: 14px; padding: 14px 6px; text-align: center; opacity: 0.35; }
+  .badge-card.unlocked { opacity: 1; }
+  .badge-card .em { font-size: 30px; }
+  .badge-card .nm { font-size: 11px; font-weight: 700; margin-top: 4px; }
+
+  /* ---- Bottom nav ---- */
+  .bottom-nav {
+    flex: none;
+    background: var(--nav-bg);
+    display: flex;
+    padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+  }
+  .nav-btn {
+    flex: 1; background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--sub); font-size: 11px; font-weight: 700; cursor: pointer; padding: 6px 2px; border-radius: 14px;
+  }
+  .nav-btn .ic { font-size: 20px; }
+  .nav-btn.active { color: var(--accent); background: var(--accent-soft); }
+  .nav-btn:disabled { opacity: 0.35; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="streak-chip">🔥 <span id="streakNum">1</span></div>
+    <div class="home-mid">
+      <div class="buddy-avatar" id="buddyAvatar">🦊</div>
+      <div class="wordmark"><span class="tri">▲</span>Maze Buddies</div>
+      <div class="level-line">Level <span id="homeLevel">1</span></div>
+      <div class="buddy-name" id="buddyName">Foxy</div>
+    </div>
+    <button class="play-btn" id="playBtn">Play</button>
+  </section>
+
+  <!-- GAME -->
+  <section class="screen" id="screen-game">
+    <div class="game-topbar">
+      <button class="btn-round" id="backBtn">&#9664;</button>
+      <button class="btn-round" id="restartBtn" title="Restart level">&#8635;</button>
+      <div class="hearts" id="hearts"></div>
+      <div class="level-tag" id="levelTag">Level 1</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="board-wrap"><div id="grid"></div></div>
+    <div class="status" id="status"></div>
+    <button class="next-btn" id="nextBtn">Next level &rarr;</button>
+  </section>
+
+  <!-- COLLECTION -->
+  <section class="screen" id="screen-collection">
+    <div class="screen-title">Collection</div>
+    <div class="section-title">Records</div>
+    <div class="stat-row">
+      <div class="stat-card"><div class="num" id="statStreak">0</div><div class="lbl">Longest streak</div></div>
+      <div class="stat-card"><div class="num" id="statWinStreak">0</div><div class="lbl">Best win streak</div></div>
+      <div class="stat-card"><div class="num" id="statWins">0</div><div class="lbl">Total wins</div></div>
+    </div>
+    <div class="section-title">Awards</div>
+    <div class="badge-row" id="badgeRow"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="screen-settings">
+    <div class="screen-title">Settings</div>
+    <div class="settings-group">
+      <div class="settings-row">
+        <div class="left"><span class="icon">🌐</span>Language</div>
+        <div class="val">English &rsaquo;</div>
+      </div>
+      <div class="settings-row">
+        <div class="left"><span class="icon">📳</span>Vibrations</div>
+        <button class="toggle on" id="toggleVibration"><span class="knob"></span></button>
+      </div>
+      <div class="settings-row">
+        <div class="left"><span class="icon">🔊</span>Sounds</div>
+        <button class="toggle on" id="toggleSound"><span class="knob"></span></button>
+      </div>
+      <div class="settings-row">
+        <div class="left"><span class="icon">🌙</span>Dark mode</div>
+        <button class="toggle" id="toggleDark"><span class="knob"></span></button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-row"><div class="left"><span class="icon">🚫</span>Remove Ads</div><div class="val">soon</div></div>
+      <div class="settings-row"><div class="left"><span class="icon">🔄</span>Restore purchases</div></div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-row"><div class="left"><span class="icon">⭐</span>Rate us</div></div>
+      <div class="settings-row"><div class="left"><span class="icon">✏️</span>Write us</div></div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-row"><div class="left"><span class="icon">📄</span>Privacy</div></div>
+      <div class="settings-row"><div class="left"><span class="icon">ℹ️</span>Terms of Service</div></div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-nav="home"><span class="ic">🏠</span>Home</button>
+    <button class="nav-btn" data-nav="game" id="navLevel"><span class="ic">🔒</span>Level</button>
+    <button class="nav-btn" data-nav="collection"><span class="ic">🏆</span>Collection</button>
+    <button class="nav-btn" data-nav="settings"><span class="ic">⚙️</span>Settings</button>
+  </nav>
+
+</div>
+
+<script src="buddies-data.js"></script>
+<script>
+"use strict";
+
+/* ============================================================
+   Maze Buddies - bare-bones core loop (GATE 1 build)
+   Mechanic cloned from "Arrows Puzzle Escape": tap an arrow tile,
+   it auto-traces the arrow chain until it exits the grid (win)
+   or hits a wall / revisits a cell (lose a heart).
+   Levels are procedurally generated from a seeded RNG so every
+   level N is always the same maze (deterministic, testable).
+   ============================================================ */
+
+// ---- seeded RNG (mulberry32) ----
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+function randInt(rng, min, max) { return min + Math.floor(rng() * (max - min + 1)); }
+
+const DIRS = {
+  U: { dr: -1, dc: 0, glyph: '&#9650;', opp: 'D' },
+  D: { dr: 1, dc: 0, glyph: '&#9660;', opp: 'U' },
+  L: { dr: 0, dc: -1, glyph: '&#9664;', opp: 'R' },
+  R: { dr: 0, dc: 1, glyph: '&#9654;', opp: 'L' },
+};
+const DIR_KEYS = ['U', 'D', 'L', 'R'];
+
+// ---- difficulty tiers: grid resolution grows, shape stays recognizable ----
+function tierFor(levelIndex) {
+  const n = levelIndex + 1; // 1-based level number
+  if (n <= 2)  return { size: 10 };
+  if (n <= 5)  return { size: 12 };
+  if (n <= 9)  return { size: 13 };
+  if (n <= 18) return { size: 15 };
+  if (n <= 32) return { size: 17 };
+  if (n <= 50) return { size: 19 };
+  return         { size: 21 };
+}
+
+// ---- silhouette shapes: the whole maze is packed to fill one of these outlines ----
+// Each test(x,y) takes grid-normalized coords (x,y in roughly -1..1, y-down) and
+// returns true if that point sits inside the silhouette.
+const SHAPES = {
+  heart(x, y) {
+    const lobeY = -0.22, lobeR = 0.5;
+    const inLobe = (dx) => { const ddx = x - dx, ddy = y - lobeY; return ddx * ddx + ddy * ddy <= lobeR * lobeR; };
+    let inside = inLobe(-0.35) || inLobe(0.35);
+    if (!inside) {
+      const t0 = -0.05, t1 = 1.05;
+      if (y >= t0 && y <= t1) inside = Math.abs(x) <= (1 - (y - t0) / (t1 - t0)) * 0.82;
+    }
+    if (!inside) return false;
+    const notchBottom = lobeY - 0.04, notchTop = lobeY - lobeR;
+    if (y < notchBottom) {
+      const notchHalf = Math.max(0, (y - notchTop) / (notchBottom - notchTop)) * 0.16;
+      if (Math.abs(x) < notchHalf) return false;
+    }
+    return true;
+  },
+  star(x, y) {
+    const spikes = 5, outerR = 1.0, innerR = 0.42;
+    let a = Math.atan2(x, -y) - Math.PI / 2; // point aims up
+    a = ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    const seg = Math.PI / spikes;
+    const k = Math.floor(a / seg);
+    const localA = a - k * seg;
+    const t = localA / seg; // 0..1 between a vertex and the next
+    const rEdge = k % 2 === 0
+      ? outerR + (innerR - outerR) * t
+      : innerR + (outerR - innerR) * t;
+    const r = Math.hypot(x, y);
+    return r <= rEdge * 0.98;
+  },
+  arrow(x, y) {
+    // shaft + a triangular head, pointing up
+    if (x >= -0.22 && x <= 0.22 && y >= 0.05 && y <= 0.95) return true;
+    const headTop = -0.95, headBottom = 0.1;
+    if (y < headTop || y > headBottom) return false;
+    const half = ((y - headTop) / (headBottom - headTop)) * 0.85;
+    return Math.abs(x) <= half;
+  },
+  horseshoe(x, y) {
+    const cy = 0.05;
+    const r = Math.hypot(x, y - cy);
+    if (r < 0.42 || r > 0.92) return false;
+    let a = Math.atan2(y - cy, x); // -PI..PI, -PI/2 = up
+    const deg = a * 180 / Math.PI;
+    return !(deg < -35 && deg > -145);
+  },
+  diamond(x, y) {
+    return Math.abs(x) + Math.abs(y) * 0.85 <= 0.98;
+  },
+};
+const SHAPE_NAMES = Object.keys(SHAPES);
+
+function buildMask(shapeName, rows, cols) {
+  const test = SHAPES[shapeName];
+  const mask = Array.from({ length: rows }, () => Array(cols).fill(false));
+  const aspect = cols / rows;
+  const SCALE = 0.88; // shrink sampled coords so the shape's silhouette actually reaches the canvas edge somewhere
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = ((c + 0.5) / cols * 2 - 1) * Math.max(1, aspect) * SCALE;
+      const y = ((r + 0.5) / rows * 2 - 1) * SCALE;
+      mask[r][c] = test(x, y);
+    }
+  }
+  return mask;
+}
+
+// ---- fill the whole silhouette with non-crossing arrow chains (one cell = one chain, ever) ----
+function snakeFillPaths(mask, rows, cols, rng, maxLen) {
+  const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+  const order = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (mask[r][c]) order.push({ r, c });
+  shuffle(order, rng);
+
+  const paths = [];
+  for (const start of order) {
+    if (visited[start.r][start.c]) continue;
+    const path = [];
+    let r = start.r, c = start.c;
+    // cap each chain so the board reads as many medium snakes, not one giant one
+    const cap = maxLen ? randInt(rng, Math.max(2, maxLen - 3), maxLen) : Infinity;
+    while (true) {
+      visited[r][c] = true;
+      const inside = [], outside = [];
+      for (const d of DIR_KEYS) {
+        const nd = DIRS[d];
+        const nr = r + nd.dr, nc = c + nd.dc;
+        const isInGrid = nr >= 0 && nr < rows && nc >= 0 && nc < cols;
+        const isFreeInside = isInGrid && mask[nr][nc] && !visited[nr][nc];
+        if (isFreeInside) inside.push({ d, nr, nc });
+        else if (!isInGrid) outside.push({ d, edge: true });
+        else if (!mask[nr][nc]) outside.push({ d, edge: false });
+      }
+      if (inside.length && path.length + 1 < cap) {
+        shuffle(inside, rng);
+        const next = inside[0];
+        path.push({ r, c, dir: next.d });
+        r = next.nr; c = next.nc;
+        continue;
+      }
+      // terminate: prefer a heading that leaves the canvas, else any free-ish side, else anything
+      shuffle(outside, rng);
+      outside.sort((a, b) => (b.edge ? 1 : 0) - (a.edge ? 1 : 0));
+      let termDir = (outside[0] && outside[0].d);
+      if (!termDir && inside.length) { shuffle(inside, rng); termDir = inside[0].d; }
+      if (!termDir) termDir = pick(rng, DIR_KEYS);
+      path.push({ r, c, dir: termDir });
+      break;
+    }
+    paths.push(path);
+  }
+  return paths;
+}
+
+function isCanvasExit(cell, rows, cols) {
+  const d = DIRS[cell.dir];
+  const nr = cell.r + d.dr, nc = cell.c + d.dc;
+  return nr < 0 || nr >= rows || nc < 0 || nc >= cols;
+}
+
+// ---- buddies per tier ----
+const BUDDIES = [
+  { min: 0,  emoji: '🦊', name: 'Foxy',   color: '#E8722C', dark: '#B85A20' },
+  { min: 10, emoji: '🐰', name: 'Bunbun', color: '#F0668C', dark: '#C94B70' },
+  { min: 20, emoji: '🐼', name: 'Pandy',  color: '#2FAF9E', dark: '#1F8778' },
+  { min: 35, emoji: '🦉', name: 'Hooter', color: '#8B5FE0', dark: '#6C42BE' },
+  { min: 50, emoji: '🐻', name: 'Bearo',  color: '#A9642E', dark: '#82491F' },
+  { min: 70, emoji: '🐨', name: 'Koa',    color: '#4E7FB8', dark: '#385F8C' },
+];
+function buddyFor(levelIndex) {
+  let b = BUDDIES[0];
+  for (const x of BUDDIES) if (levelIndex >= x.min) b = x;
+  return b;
+}
+
+// darken a hex colour by factor f (0..1)
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * (1 - f));
+  const g = Math.round(((n >> 8) & 255) * (1 - f));
+  const b = Math.round((n & 255) * (1 - f));
+  return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+}
+
+// ---- in-level chain buddies: each chain uses one of the APPROVED buddy graphics,
+// drawn at the tail, with its trail + head arrow in that buddy's dominant colour ----
+const BUDDY_DIR = 'design/characters/buddies/';
+const CHAIN_KINDS = (window.MB_BUDDIES && window.MB_BUDDIES.length
+  ? window.MB_BUDDIES
+  : [{ name: 'rusty', color: '#F2762E' }]
+).map(b => ({
+  img: BUDDY_DIR + b.name + '.png',
+  color: b.color,
+  dark: shade(b.color, 0.42),
+}));
+// warm the browser cache so faces pop in without a flash
+CHAIN_KINDS.forEach(k => { const i = new Image(); i.src = k.img; });
+
+function shuffle(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// ---- solvability: a chain can leave now if its head's straight ray is free of every remaining chain ----
+function rayClearAgainst(chain, otherChains, rows, cols, dirOverride) {
+  const head = chain.cells[chain.cells.length - 1];
+  const d = DIRS[dirOverride || head.dir];
+  const occ = new Set();
+  for (const o of otherChains) for (const cell of o.cells) occ.add(cell.r + ',' + cell.c);
+  let r = head.r + d.dr, c = head.c + d.dc, guard = 0;
+  while (guard++ < 128) {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return true;
+    if (occ.has(r + ',' + c)) return false;
+    r += d.dr; c += d.dc;
+  }
+  return true;
+}
+
+// Peel the board from the outside in: repeatedly take a chain that has a heading
+// clear of every OTHER still-present chain, lock that heading, and remove it.
+// The resulting order is a guaranteed full solution AND it is greedy-safe: at any
+// reachable state, the earliest not-yet-removed chain in this order is always
+// clearable, so the player can never dead-end by tapping "the wrong" buddy.
+function repairSolvability(chains, rows, cols) {
+  const present = new Set(chains);
+  let guard = 0;
+  while (present.size && guard++ < chains.length * 6) {
+    let done = null, dir = null;
+    for (const ch of present) {
+      const others = [...present].filter(x => x !== ch);
+      const n = ch.cells.length;
+      const backDir = n > 1 ? DIRS[ch.cells[n - 2].dir].opp : null; // never aim into our own body
+      const good = DIR_KEYS.find(dd => dd !== backDir && rayClearAgainst(ch, others, rows, cols, dd));
+      if (good) { done = ch; dir = good; break; }
+    }
+    if (!done) {
+      // rare full deadlock: force the first chain outward and accept a possible clip
+      done = present.values().next().value;
+      const n = done.cells.length;
+      const backDir = n > 1 ? DIRS[done.cells[n - 2].dir].opp : null;
+      dir = DIR_KEYS.find(dd => dd !== backDir) || done.cells[n - 1].dir;
+    }
+    done.cells[done.cells.length - 1].dir = dir;
+    present.delete(done);
+  }
+}
+
+function generateLevel(levelIndex) {
+  const tier = tierFor(levelIndex);
+  const rows = tier.size, cols = tier.size;
+  const shapeName = SHAPE_NAMES[levelIndex % SHAPE_NAMES.length];
+
+  let chosen = null;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const rng = mulberry32(1000 + levelIndex * 7919 + attempt * 104729);
+    const mask = buildMask(shapeName, rows, cols);
+    const maxLen = 15 + Math.floor(levelIndex / 4); // longer chains -> fewer, readable buddies
+    const rawPaths = snakeFillPaths(mask, rows, cols, rng, maxLen).filter(p => p.length >= 1);
+    if (rawPaths.length < 2) continue;
+
+    const kinds = CHAIN_KINDS.slice();
+    shuffle(kinds, rng);
+    const chains = rawPaths.map((p, i) => {
+      const k = kinds[i % kinds.length];
+      return { img: k.img, color: k.color, dark: k.dark, cells: p };
+    });
+    repairSolvability(chains, rows, cols);
+    chosen = { rows, cols, chains, chainCount: chains.length, shape: shapeName };
+    break;
+  }
+  if (!chosen) {
+    const k = CHAIN_KINDS[0];
+    chosen = {
+      rows: 3, cols: 3, shape: 'fallback', chainCount: 1,
+      chains: [{ img: k.img, color: k.color, dark: k.dark, cells: [{ r: 1, c: 1, dir: 'L' }] }],
+    };
+  }
+  return chosen;
+}
+
+// ---- persistence ----
+const STORE_KEY = 'mazebuddies_save_v1';
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return {
+    level: 0,          // 0-based index of level to play next
+    totalWins: 0,
+    currentWinStreak: 0,
+    bestWinStreak: 0,
+    perfectRuns: 0,     // levels cleared without losing a heart
+    dayStreak: 0,
+    lastPlayedDate: null,
+    badges: {},
+    darkMode: false,
+    vibration: true,
+    sound: true,
+  };
+}
+function persist() { try { localStorage.setItem(STORE_KEY, JSON.stringify(save)); } catch (e) {} }
+
+let save = loadSave();
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+function updateDayStreak() {
+  const today = todayStr();
+  if (save.lastPlayedDate === today) return;
+  if (save.lastPlayedDate) {
+    const prev = new Date(save.lastPlayedDate);
+    const diffDays = Math.round((new Date(today) - prev) / 86400000);
+    save.dayStreak = diffDays === 1 ? save.dayStreak + 1 : 1;
+  } else {
+    save.dayStreak = 1;
+  }
+  save.lastPlayedDate = today;
+  persist();
+}
+
+// ---- badges ----
+const BADGE_DEFS = [
+  { id: 'trailblazer', em: '🥉', name: 'Trailblazer', check: s => s.level >= 10 },
+  { id: 'legend',      em: '🏅', name: 'Maze Legend', check: s => s.level >= 20 },
+  { id: 'unstoppable', em: '🔥', name: 'Unstoppable', check: s => s.bestWinStreak >= 5 },
+  { id: 'perfect',     em: '💎', name: 'Perfect Run', check: s => s.perfectRuns >= 5 },
+  { id: 'collector',   em: '🐾', name: 'Buddy Collector', check: s => s.level >= 50 },
+  { id: 'master',      em: '👑', name: 'Maze Master', check: s => s.level >= 50 },
+];
+function refreshBadges() {
+  for (const b of BADGE_DEFS) if (b.check(save)) save.badges[b.id] = true;
+}
+
+// ---- state ----
+let hearts = 3;
+let busy = false;
+let lostAnyHeart = false;
+let currentLevel = save.level;
+
+// ---- DOM refs ----
+const gridEl = document.getElementById('grid');
+const heartsEl = document.getElementById('hearts');
+const levelTagEl = document.getElementById('levelTag');
+const statusEl = document.getElementById('status');
+const nextBtn = document.getElementById('nextBtn');
+const restartBtn = document.getElementById('restartBtn');
+const backBtn = document.getElementById('backBtn');
+const playBtn = document.getElementById('playBtn');
+const progressFill = document.getElementById('progressFill');
+const streakNum = document.getElementById('streakNum');
+const homeLevel = document.getElementById('homeLevel');
+const buddyAvatar = document.getElementById('buddyAvatar');
+const buddyNameEl = document.getElementById('buddyName');
+
+function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function vibrate(ms) { if (save.vibration && navigator.vibrate) navigator.vibrate(ms); }
+
+function renderHearts() {
+  heartsEl.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const span = document.createElement('span');
+    span.textContent = '❤';
+    span.className = 'heart' + (i < hearts ? '' : ' lost');
+    heartsEl.appendChild(span);
+  }
+}
+
+let levelData = null;
+let cellSize = 44, gap = 4;
+
+function pt(r, c) {
+  return { x: c * (cellSize + gap) + cellSize / 2, y: r * (cellSize + gap) + cellSize / 2 };
+}
+
+// geometry for a chain given the current segment positions (head last):
+// the trail path, the buddy graphic at the tail, and the forward arrow at the head
+function chainParts(chain, positions) {
+  const n = positions.length;
+  const d = positions.map((p, i) => {
+    const q = pt(p.r, p.c);
+    return (i === 0 ? 'M' : 'L') + q.x.toFixed(1) + ',' + q.y.toFixed(1);
+  }).join(' ');
+
+  const hdir = chain.cells[chain.cells.length - 1].dir; // the arrow / travel direction
+  const tp = pt(positions[0].r, positions[0].c);         // tail  -> buddy graphic
+  const hp = pt(positions[n - 1].r, positions[n - 1].c); // head  -> forward arrow
+  return {
+    d,
+    deco: buddyImageSVG(chain.img, tp.x, tp.y) + fwdArrow(hp.x, hp.y, hdir, chain.dark),
+  };
+}
+
+// the approved buddy artwork, centred on a cell, a touch larger than the cell
+function buddyImageSVG(url, x, y) {
+  const s = cellSize * 1.5;
+  return `<image href="${url}" x="${(x - s / 2).toFixed(1)}" y="${(y - s / 2).toFixed(1)}"
+    width="${s.toFixed(1)}" height="${s.toFixed(1)}" preserveAspectRatio="xMidYMid meet"/>`;
+}
+
+// chunky forward-pointing arrow at the head of a chain - shows where it will move
+function fwdArrow(x, y, dir, color) {
+  const rot = { R: 0, D: 90, L: 180, U: 270 }[dir] || 0;
+  const w = cellSize * 0.4, h = cellSize * 0.58;
+  return `<polygon points="${(-h * 0.5).toFixed(1)},${(-w).toFixed(1)} ${(h * 0.5).toFixed(1)},0 ${(-h * 0.5).toFixed(1)},${w.toFixed(1)}"
+    fill="${color}" stroke="#ffffff" stroke-width="${(cellSize * 0.08).toFixed(1)}" stroke-linejoin="round"
+    transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${rot})"/>`;
+}
+
+function buildBoard() {
+  levelData = generateLevel(currentLevel);
+  hearts = 3;
+  lostAnyHeart = false;
+  cellSize = Math.min(44, Math.floor(300 / levelData.cols));
+  gap = Math.max(2, Math.round(cellSize * 0.09));
+  statusEl.textContent = '';
+  statusEl.className = 'status';
+  nextBtn.style.display = 'none';
+  levelTagEl.textContent = 'Level ' + (currentLevel + 1);
+  progressFill.style.width = Math.min(100, ((currentLevel % 10) / 10) * 100) + '%';
+  heartsEl.style.display = 'none';
+  moves = 0;
+
+  boardW = levelData.cols * cellSize + (levelData.cols - 1) * gap;
+  boardH = levelData.rows * cellSize + (levelData.rows - 1) * gap;
+  lineW = Math.max(9, cellSize * 0.5);
+
+  renderBoard();
+  setStatus('Tap a buddy to slide it out. Left: ' + levelData.chains.length, '');
+}
+
+let boardW = 0, boardH = 0, lineW = 12, moves = 0;
+
+// draw a single chain: coloured trail + bold tail arrow + buddy face at the head
+function chainSVG(chain, idx) {
+  const parts = chainParts(chain, chain.cells);
+  return `<g class="chain" data-idx="${idx}">
+    <path id="chain-path-${idx}" d="${parts.d}" fill="none" stroke="${chain.color}"
+      stroke-width="${lineW}" stroke-linecap="round" stroke-linejoin="round"/>
+    <g id="chain-deco-${idx}">${parts.deco}</g>
+  </g>`;
+}
+
+function renderBoard() {
+  let groups = '', hits = '';
+  levelData.chains.forEach((chain, idx) => {
+    groups += chainSVG(chain, idx);
+    for (const cell of chain.cells) {
+      const p = pt(cell.r, cell.c);
+      hits += `<rect class="hit" data-idx="${idx}" x="${p.x - cellSize / 2}" y="${p.y - cellSize / 2}" width="${cellSize}" height="${cellSize}" fill="transparent"/>`;
+    }
+  });
+  gridEl.innerHTML = `<svg viewBox="0 0 ${boardW} ${boardH}" width="${boardW}" height="${boardH}" style="overflow:visible">
+    <g id="chains">${groups}</g>
+    <g id="hits">${hits}</g>
+  </svg>`;
+  gridEl.querySelectorAll('.hit').forEach(el => {
+    el.addEventListener('click', () => onTap(Number(el.dataset.idx)));
+  });
+}
+
+function setStatus(text, cls) {
+  statusEl.textContent = text;
+  statusEl.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+// cells a chain's head sweeps through on its way off the board, in order
+function headRay(chain) {
+  const head = chain.cells[chain.cells.length - 1];
+  const d = DIRS[head.dir];
+  const ray = [];
+  let r = head.r + d.dr, c = head.c + d.dc, guard = 0;
+  while (guard++ < 64) {
+    ray.push({ r, c, inGrid: r >= 0 && r < levelData.rows && c >= 0 && c < levelData.cols });
+    if (r < 0 || r >= levelData.rows || c < 0 || c >= levelData.cols) break;
+    r += d.dr; c += d.dc;
+  }
+  return ray;
+}
+
+// is the head ray clear of every OTHER live chain?
+function rayIsClear(chain) {
+  const occ = new Set();
+  for (const other of levelData.chains) {
+    if (other === chain) continue;
+    for (const cell of other.cells) occ.add(cell.r + ',' + cell.c);
+  }
+  for (const step of headRay(chain)) {
+    if (!step.inGrid) return true;
+    if (occ.has(step.r + ',' + step.c)) return false;
+  }
+  return true;
+}
+
+async function onTap(idx) {
+  if (busy) return;
+  const chain = levelData.chains[idx];
+  if (!chain) return;
+  busy = true;
+
+  if (!rayIsClear(chain)) {
+    await shakeChain(idx);
+    setStatus('Blocked - clear another buddy first.', 'fail');
+    vibrate(40);
+    busy = false;
+    return;
+  }
+
+  moves++;
+  vibrate(20);
+  await slideChainOut(chain, idx);
+  levelData.chains.splice(idx, 1);
+  renderBoard();
+
+  if (levelData.chains.length === 0) {
+    await win();
+  } else {
+    setStatus('Nice! Left: ' + levelData.chains.length, 'win');
+  }
+  busy = false;
+}
+
+// snake the chain off the board: head leads straight along its arrow,
+// every body segment follows the segment ahead of it
+async function slideChainOut(chain, idx) {
+  const body = chain.cells.map(c => ({ r: c.r, c: c.c }));
+  const n = body.length;
+  const head = chain.cells[n - 1];
+  const d = DIRS[head.dir];
+  // per-segment route: [its body cells up to the head] ++ [head's straight ray]
+  const ray = [];
+  for (let k = 1; k <= n + Math.max(levelData.rows, levelData.cols) + 2; k++) {
+    ray.push({ r: head.r + d.dr * k, c: head.c + d.dc * k });
+  }
+  const routes = body.map((_, i) => body.slice(i).concat(ray));
+  const steps = (n - 1) + ray.length;
+  const stepMs = Math.max(18, Math.min(46, Math.round(650 / steps)));
+  const pathEl = document.getElementById('chain-path-' + idx);
+  const decoEl = document.getElementById('chain-deco-' + idx);
+
+  for (let s = 1; s <= steps; s++) {
+    const pos = routes.map(route => route[Math.min(s, route.length - 1)]);
+    const parts = chainParts(chain, pos);
+    if (pathEl) pathEl.setAttribute('d', parts.d);
+    if (decoEl) decoEl.innerHTML = parts.deco;
+    await sleep(stepMs);
+  }
+  if (pathEl) pathEl.parentNode.remove();
+}
+
+async function shakeChain(idx) {
+  const g = gridEl.querySelector('.chain[data-idx="' + idx + '"]');
+  if (!g) return;
+  for (let i = 0; i < 3; i++) {
+    g.setAttribute('transform', 'translate(3,0)'); await sleep(50);
+    g.setAttribute('transform', 'translate(-3,0)'); await sleep(50);
+  }
+  g.removeAttribute('transform');
+}
+
+async function win() {
+  setStatus('Solved in ' + moves + ' moves!', 'win');
+  vibrate(30);
+  nextBtn.style.display = 'inline-block';
+
+  save.totalWins++;
+  save.currentWinStreak++;
+  save.bestWinStreak = Math.max(save.bestWinStreak, save.currentWinStreak);
+  if (moves <= levelData.chainCount) save.perfectRuns++;
+  currentLevel++;
+  save.level = currentLevel;
+  refreshBadges();
+  updateDayStreak();
+  persist();
+}
+
+nextBtn.addEventListener('click', () => buildBoard());
+restartBtn.addEventListener('click', () => buildBoard());
+backBtn.addEventListener('click', () => showScreen('home'));
+playBtn.addEventListener('click', () => { currentLevel = save.level; showScreen('game'); buildBoard(); });
+
+// ---- navigation ----
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === name || (name === 'game' && b.dataset.nav === 'game')));
+  if (name === 'home') renderHome();
+  if (name === 'collection') renderCollection();
+}
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const nav = btn.dataset.nav;
+    if (nav === 'game') { currentLevel = save.level; showScreen('game'); buildBoard(); }
+    else showScreen(nav);
+  });
+});
+
+function renderHome() {
+  streakNum.textContent = save.dayStreak || 0;
+  homeLevel.textContent = save.level + 1;
+  const b = buddyFor(save.level);
+  buddyAvatar.textContent = b.emoji;
+  buddyNameEl.textContent = b.name;
+}
+
+function renderCollection() {
+  document.getElementById('statStreak').textContent = save.dayStreak || 0;
+  document.getElementById('statWinStreak').textContent = save.bestWinStreak || 0;
+  document.getElementById('statWins').textContent = save.totalWins || 0;
+  const row = document.getElementById('badgeRow');
+  row.innerHTML = '';
+  for (const b of BADGE_DEFS) {
+    const unlocked = !!save.badges[b.id];
+    const div = document.createElement('div');
+    div.className = 'badge-card' + (unlocked ? ' unlocked' : '');
+    div.innerHTML = `<div class="em">${b.em}</div><div class="nm">${b.name}</div>`;
+    row.appendChild(div);
+  }
+}
+
+// ---- settings ----
+function wireToggle(id, key, onChange) {
+  const btn = document.getElementById(id);
+  btn.classList.toggle('on', !!save[key]);
+  btn.addEventListener('click', () => {
+    save[key] = !save[key];
+    btn.classList.toggle('on', save[key]);
+    persist();
+    if (onChange) onChange(save[key]);
+  });
+}
+wireToggle('toggleVibration', 'vibration');
+wireToggle('toggleSound', 'sound');
+wireToggle('toggleDark', 'darkMode', on => {
+  document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
+});
+if (save.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
+
+// ---- boot ----
+renderHome();
+</script>
+</body>
+</html>

@@ -149,7 +149,14 @@
   .ad-slot span { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--sub); opacity: .6; }
   .board-wrap { flex: 1; display: flex; align-items: center; justify-content: center;
     position: relative; overflow: hidden; touch-action: none; }
-  #grid { display: block; transform-origin: 0 0; will-change: transform; }
+  /* no will-change here: it promotes #grid to a raster layer that goes grainy
+     when zoomed in. The SVG re-rasterises crisply on transform without it. */
+  #grid { display: block; transform-origin: 0 0; }
+  #grid image { image-rendering: auto; }
+  #bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+  #bg[hidden] { display: none; }
+  .screen { z-index: 1; }
+  #screen-home, #screen-collection, #screen-settings { background: transparent; }
   #grid .hit { cursor: pointer; }
   #grid .hit:active + .arrowhead { opacity: 0.6; }
   .zoom-btns { position: absolute; right: 6px; bottom: 6px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
@@ -335,6 +342,7 @@
 <body>
 
 <div id="app">
+  <canvas id="bg"></canvas>
 
   <!-- HOME -->
   <section class="screen active" id="screen-home">
@@ -742,23 +750,26 @@ const DIR_KEYS = ['U', 'D', 'L', 'R'];
 function difficultyFor(levelIndex) {
   const hard = levelIndex % 2 === 1;
   const ramp = Math.floor(levelIndex / 2); // how many hard levels deep
+  // The whole silhouette is filled with chains (Mark: no skipped cells - the
+  // shape is drawn "pixel by pixel"). Easy just uses a smaller grid + longer
+  // chains so it stays a quick solve; hard grows the grid and windiness.
   if (hard) {
     return {
       hard: true,
       size: Math.min(21, 13 + ramp),
-      fill: Math.min(0.92, 0.78 + ramp * 0.012),
+      fill: 1,
       maxLen: Math.max(7, 12 - Math.floor(ramp / 5)),
       straightBias: Math.max(0.42, 0.6 - ramp * 0.01), // lower = windier chains
-      chainCap: 22,
+      chainCap: 26,
     };
   }
   return {
     hard: false,
-    size: Math.min(14, 11 + Math.floor(ramp / 5)),
-    fill: 0.48,        // sparse - a quick breather
-    maxLen: 18,        // long chains -> few buddies
-    straightBias: 0.8, // mostly straight
-    chainCap: 9,
+    size: Math.min(13, 10 + Math.floor(ramp / 6)),
+    fill: 1,
+    maxLen: 16,        // long chains -> few buddies -> quick
+    straightBias: 0.82,
+    chainCap: 12,
   };
 }
 
@@ -826,15 +837,55 @@ const SHAPES = {
   circle(x, y) {
     return x * x + y * y <= 0.96 * 0.96;
   },
+  square(x, y) { return Math.abs(x) <= 0.9 && Math.abs(y) <= 0.9; },
+  rectangle(x, y) { return Math.abs(x) <= 0.98 && Math.abs(y) <= 0.62; },
+  triangle(x, y) {
+    if (y < -0.9 || y > 0.85) return false;
+    const t = (y + 0.9) / 1.75; // 0 at apex, 1 at base
+    return Math.abs(x) <= t * 0.95;
+  },
+  oval(x, y) { return (x / 0.98) * (x / 0.98) + (y / 0.66) * (y / 0.66) <= 1; },
+  cross(x, y) {
+    return (Math.abs(x) <= 0.32 && Math.abs(y) <= 0.95) || (Math.abs(y) <= 0.32 && Math.abs(x) <= 0.95);
+  },
+  crescent(x, y) {
+    const inBig = x * x + y * y <= 0.95 * 0.95;
+    const inCut = (x - 0.42) * (x - 0.42) + y * y <= 0.82 * 0.82;
+    return inBig && !inCut;
+  },
+  pentagon(x, y) { return regularPoly(x, y, 5, -Math.PI / 2, 0.96); },
+  hexagon(x, y) { return regularPoly(x, y, 6, 0, 0.96); },
+  octagon(x, y) { return regularPoly(x, y, 8, Math.PI / 8, 0.98); },
+  carrot(x, y) {
+    // pointed body aiming down + a leafy frill on top
+    if (y >= -0.55 && y <= 0.9) {
+      const t = (0.9 - y) / 1.45; // 1 near top, 0 at the tip
+      if (Math.abs(x) <= t * 0.62) return true;
+    }
+    return y < -0.5 && y > -0.95 && Math.abs(x) < 0.34; // frill
+  },
+  bone(x, y) {
+    const bar = Math.abs(y) <= 0.24 && Math.abs(x) <= 0.62;
+    const knob = (kx, ky) => (x - kx) * (x - kx) + (y - ky) * (y - ky) <= 0.34 * 0.34;
+    return bar || knob(0.62, 0.26) || knob(0.62, -0.26) || knob(-0.62, 0.26) || knob(-0.62, -0.26);
+  },
 };
-// recognisable shapes lead the rotation so early levels read clearly
-const SHAPE_NAMES = ['heart', 'house', 'star', 'diamond', 'circle', 'arrow', 'horseshoe'];
+function regularPoly(x, y, sides, rot, scale) {
+  const r = Math.hypot(x, y);
+  const seg = (Math.PI * 2) / sides;
+  let a = ((Math.atan2(y, x) - rot) % seg + seg) % seg;
+  const rEdge = Math.cos(seg / 2) / Math.cos(a - seg / 2); // regular polygon by its apothem
+  return r <= rEdge * scale;
+}
+// recognisable shapes lead; the themed / basic ones add variety further in
+const SHAPE_NAMES = ['heart', 'house', 'star', 'circle', 'cross', 'crescent', 'diamond',
+  'triangle', 'square', 'carrot', 'horseshoe', 'hexagon', 'bone', 'arrow', 'oval', 'pentagon', 'rectangle', 'octagon'];
 
 function buildMask(shapeName, rows, cols) {
   const test = SHAPES[shapeName];
   const mask = Array.from({ length: rows }, () => Array(cols).fill(false));
   const aspect = cols / rows;
-  const SCALE = 0.94; // shrink sampled coords so the shape's silhouette actually reaches the canvas edge somewhere
+  const SCALE = 0.97; // shrink sampled coords so the shape's silhouette actually reaches the canvas edge somewhere
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const x = ((c + 0.5) / cols * 2 - 1) * Math.max(1, aspect) * SCALE;
@@ -893,7 +944,9 @@ function carvePaths(mask, rows, cols, rng, minLen, maxLen, fillFrac, straightBia
 
   const ATTEMPTS = 14;
   let safety = 0;
-  while (built.size < target && free.size && safety++ < rows * cols * 4) {
+  // consume EVERY silhouette cell (Mark: no skipped cells). `target` is only a
+  // hint for when to start allowing short chains.
+  while (free.size && safety++ < rows * cols * 4) {
     let chosen = null, chosenHead = null;
     for (let attempt = 0; attempt < ATTEMPTS && !chosen; attempt++) {
       const walked = [];
@@ -948,6 +1001,33 @@ function carvePaths(mask, rows, cols, rng, minLen, maxLen, fillFrac, straightBia
     chosen.turnedHead = chosenHead.turned;
     for (const cell of chosen) built.add(key(cell.r, cell.c));
     chains.push(chosen);
+  }
+
+  // No skipped cells (Mark): every leftover free cell is carved into its own tiny
+  // path above, then those short paths are folded into a neighbour's TAIL here.
+  // Folding at the tail (buddy end) never touches a head's exit ray, so the
+  // board stays solvable by construction. Result: full silhouette, min chain
+  // length respected, heads unchanged.
+  const adj = (a, b) => Math.abs(a.r - b.r) + Math.abs(a.c - b.c) === 1;
+  let progress = true, guard = 0;
+  while (progress && guard++ < 400) {
+    progress = false;
+    const shorts = chains.filter(ch => ch.length < minLen).sort((a, b) => a.length - b.length);
+    for (const short of shorts) {
+      if (chains.indexOf(short) < 0) continue;
+      for (const host of chains) {
+        if (host === short || host.length < minLen) continue;
+        let ok = false;
+        if (adj(short[0], host[0])) { host.unshift.apply(host, short.slice().reverse()); ok = true; }
+        else if (adj(short[short.length - 1], host[0])) { host.unshift.apply(host, short); ok = true; }
+        if (ok) {
+          chains.splice(chains.indexOf(short), 1);
+          for (let i = 0; i < host.length - 1; i++) host[i].dir = dirBetween(host[i], host[i + 1]) || host[i].dir;
+          progress = true;
+          break;
+        }
+      }
+    }
   }
   return chains;
 }
@@ -1059,7 +1139,82 @@ const CHAIN_KINDS = (window.MB_BUDDIES && window.MB_BUDDIES.length
   treat: b.treat || '',
 }));
 // warm the browser cache so faces pop in without a flash
-CHAIN_KINDS.forEach(k => { const i = new Image(); i.src = k.img; });
+const BUDDY_IMGS = CHAIN_KINDS.map(k => { const i = new Image(); i.src = k.img; return i; });
+
+// ---- faint drifting "snake" buddies behind the menu screens (fills the white) ----
+const BgSnakes = (function () {
+  const cv = document.getElementById('bg');
+  const cx = cv.getContext('2d');
+  let W = 0, H = 0, snakes = [], raf = 0, running = false, last = 0;
+
+  function size() {
+    const r = document.getElementById('app').getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = r.width; H = r.height;
+    cv.width = W * dpr; cv.height = H * dpr;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function make() {
+    const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    snakes = [];
+    const n = 4 + Math.round(W / 220);
+    for (let i = 0; i < n; i++) {
+      const d = DIRS4[(Math.random() * 4) | 0];
+      snakes.push({
+        x: Math.random() * W, y: Math.random() * H, dx: d[0], dy: d[1],
+        speed: 18 + Math.random() * 16,           // px/s
+        step: 34 + Math.random() * 10,             // spacing between body sprites
+        len: 4 + ((Math.random() * 4) | 0),
+        size: 30 + Math.random() * 14,
+        img: (Math.random() * BUDDY_IMGS.length) | 0,
+        trail: [], turnIn: 0.4 + Math.random(),
+      });
+    }
+  }
+  function frame(now) {
+    if (!running) return;
+    const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+    cx.clearRect(0, 0, W, H);
+    cx.globalAlpha = 0.07;
+    for (const s of snakes) {
+      s.turnIn -= dt;
+      if (s.turnIn <= 0) {
+        s.turnIn = 1.2 + Math.random() * 2.6;
+        const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(o => !(o[0] === -s.dx && o[1] === -s.dy));
+        const nd = opts[(Math.random() * opts.length) | 0];
+        s.dx = nd[0]; s.dy = nd[1];
+      }
+      s.x += s.dx * s.speed * dt;
+      s.y += s.dy * s.speed * dt;
+      const m = s.size;
+      if (s.x < -m) s.x = W + m; if (s.x > W + m) s.x = -m;
+      if (s.y < -m) s.y = H + m; if (s.y > H + m) s.y = -m;
+      s.trail.unshift({ x: s.x, y: s.y });
+      if (s.trail.length > s.len * s.step) s.trail.length = Math.ceil(s.len * s.step);
+      const img = BUDDY_IMGS[s.img];
+      if (img && img.complete && img.naturalWidth) {
+        for (let b = 0; b < s.len; b++) {
+          const p = s.trail[Math.min(s.trail.length - 1, b * ((s.step) | 0))];
+          if (p) cx.drawImage(img, p.x - m / 2, p.y - m / 2, m, m);
+        }
+      }
+    }
+    cx.globalAlpha = 1;
+    raf = requestAnimationFrame(frame);
+  }
+  function start() {
+    if (running) return;
+    size(); if (!snakes.length) make();
+    running = true; last = performance.now();
+    raf = requestAnimationFrame(frame);
+  }
+  function stop() { running = false; cancelAnimationFrame(raf); cx && cx.clearRect(0, 0, W, H); }
+  window.addEventListener('resize', () => { if (running) { size(); make(); } });
+  document.addEventListener('visibilitychange', () => { document.hidden ? stop() : (cv.hidden || start()); });
+  return {
+    setActive(on) { cv.hidden = !on; on ? start() : stop(); },
+  };
+})();
 
 function shuffle(arr, rng) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -1133,7 +1288,8 @@ function _generateLevel(levelIndex) {
   const rows = diff.size, cols = diff.size;
   const shapeName = SHAPE_NAMES[levelIndex % SHAPE_NAMES.length];
 
-  const MIN_CHAIN = 4; // shorter than this and the buddy overlaps its own arrow
+  const MIN_CHAIN = 4;   // carve target - shorter and the buddy overlaps its arrow
+  const KEEP_MIN = 3;    // fold stubs into a neighbour; a rare unfoldable 1-2 cell nub is dropped
   const mask = buildMask(shapeName, rows, cols);
   const shapeCells = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (mask[r][c]) shapeCells.push({ r, c });
@@ -1145,7 +1301,7 @@ function _generateLevel(levelIndex) {
     // if early passes overshoot the chain cap, force longer chains (=fewer)
     const maxLen = diff.maxLen + (attempt >= 6 ? 4 : 0) + (attempt >= 11 ? 4 : 0);
     const raw = carvePaths(mask, rows, cols, rng, MIN_CHAIN, maxLen, diff.fill, diff.straightBias);
-    const kept = raw.filter(p => p.length >= MIN_CHAIN);
+    const kept = raw.filter(p => p.length >= KEEP_MIN);
     if (kept.length < 3) continue;
     if (kept.length > diff.chainCap && attempt < 7) continue; // try for fewer chains first
 
@@ -1325,7 +1481,7 @@ function trailTreats(chain, positions) {
 
 // the approved buddy artwork, centred on a cell, a touch larger than the cell
 function buddyImageSVG(url, x, y) {
-  const s = cellSize * 1.3;
+  const s = cellSize * 1.42;
   return `<image href="${url}" x="${(x - s / 2).toFixed(1)}" y="${(y - s / 2).toFixed(1)}"
     width="${s.toFixed(1)}" height="${s.toFixed(1)}" preserveAspectRatio="xMidYMid meet"/>`;
 }
@@ -1355,7 +1511,8 @@ function buildBoard() {
   hearts = 3;
   lostAnyHeart = false;
   levelFailed = false;
-  cellSize = Math.min(44, Math.floor(300 / levelData.cols));
+  // render the board large natively so it needs less zoom scaling (= sharper)
+  cellSize = Math.min(56, Math.max(20, Math.floor(440 / levelData.cols)));
   gap = Math.max(3, Math.round(cellSize * 0.18)); // roomier so neighbouring buddies don't overlap
   statusEl.textContent = '';
   statusEl.className = 'status';
@@ -1889,6 +2046,7 @@ function showScreen(name) {
   document.getElementById('screen-' + name).classList.add('active');
   if (name === 'home') renderHome();
   if (name === 'collection') renderCollection();
+  try { BgSnakes.setActive(name !== 'game'); } catch (e) {}
 }
 document.getElementById('openCollection').addEventListener('click', () => showScreen('collection'));
 document.getElementById('openSettings').addEventListener('click', () => showScreen('settings'));
@@ -2135,6 +2293,7 @@ if (save.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
 paintIcons();
 applyLang();
 renderHome();
+try { BgSnakes.setActive(true); } catch (e) {}
 // if signed in / online, pull the server save and merge it in
 setTimeout(syncFromServer, 300);
 </script>

@@ -149,20 +149,25 @@
     100% { transform: scale(0.72) translateY(4px) rotate(-18deg); color: var(--grid-line); }
   }
   .level-tag { font-size: 13px; color: var(--sub); font-weight: 700; }
-  .progress-bar { height: 4px; background: var(--grid-line); border-radius: 2px; margin: 12px 0 20px; overflow: hidden; }
+  .progress-bar { height: 4px; background: var(--grid-line); border-radius: 2px; margin: 10px 0 8px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s; }
   .ad-slot { flex: none; height: 52px; margin: -4px -20px 8px; background: var(--nav-bg);
     border-bottom: 1px solid var(--grid-line); display: flex; align-items: center; justify-content: center; }
   .ad-slot span { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--sub); opacity: .6; }
+  #screen-game { padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
   .board-wrap { flex: 1; display: flex; align-items: center; justify-content: center;
-    position: relative; overflow: hidden; touch-action: none; }
-  /* per-level scenery backdrop - fixed behind the board, does not pan/zoom */
-  #boardBg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+    position: relative; overflow: hidden; touch-action: none; border-radius: 20px; }
+  /* #world holds the scene + the puzzle and takes the pan/zoom transform together,
+     so the scenery is a fixed place the player pans/zooms over (Márk 2026-09-01) */
+  #world { position: relative; transform-origin: 0 0; }
+  /* per-level scenery backdrop - larger than the board so panning reveals more of it */
+  #boardBg { position: absolute; left: -50%; top: -50%; width: 200%; height: 200%;
+    z-index: 0; pointer-events: none; }
   #boardBg svg { width: 100%; height: 100%; display: block; }
   #grid { position: relative; z-index: 1; }
-  /* no will-change here: it promotes #grid to a raster layer that goes grainy
+  /* no will-change here: it promotes the layer to a raster that goes grainy
      when zoomed in. The SVG re-rasterises crisply on transform without it. */
-  #grid { display: block; transform-origin: 0 0; }
+  #grid { display: block; }
   #grid image { image-rendering: auto; }
   #bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
   #bg[hidden] { display: none; }
@@ -177,7 +182,10 @@
     background: var(--card, #fff); color: var(--text, #333); font-size: 20px; font-weight: 700;
     box-shadow: 0 2px 8px rgba(0,0,0,0.14); cursor: pointer; line-height: 1; }
   .zoom-btns button:active { transform: scale(0.94); }
-  .status { min-height: 22px; font-weight: 700; text-align: center; margin-top: 10px; font-size: 14px; }
+  /* floated over the board so it doesn't steal vertical space from the play area */
+  .status { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 6;
+    min-height: 0; margin: 0; font-weight: 700; text-align: center; font-size: 14px;
+    pointer-events: none; text-shadow: 0 1px 3px rgba(255,255,255,0.75); }
   .status.win { color: var(--right); }
   .status.fail { color: var(--wrong); }
   .next-btn {
@@ -388,15 +396,17 @@
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
     <div class="board-wrap">
-      <div id="boardBg" aria-hidden="true"></div>
-      <div id="grid"></div>
+      <div id="world">
+        <div id="boardBg" aria-hidden="true"></div>
+        <div id="grid"></div>
+      </div>
+      <div class="status" id="status"></div>
       <div class="zoom-btns">
         <button id="zoomIn" aria-label="Zoom in">&plus;</button>
         <button id="zoomOut" aria-label="Zoom out">&minus;</button>
       </div>
     </div>
-    <div class="status" id="status"></div>
-    <button class="next-btn" id="nextBtn">Next level &rarr;</button>
+    <button class="next-btn" id="nextBtn" hidden>Next level &rarr;</button>
   </section>
 
   <!-- COLLECTION -->
@@ -1490,6 +1500,7 @@ let currentLevel = save.level;
 
 // ---- DOM refs ----
 const gridEl = document.getElementById('grid');
+const worldEl = document.getElementById('world');
 const heartsEl = document.getElementById('hearts');
 const levelTagEl = document.getElementById('levelTag');
 const statusEl = document.getElementById('status');
@@ -1715,6 +1726,8 @@ function buildBoard() {
   boardH = levelData.rows * cellSize + (levelData.rows - 1) * gap + boardPad * 2;
   lineW = Math.max(8, cellSize * 0.46);
 
+  worldEl.style.width = boardW + 'px';
+  worldEl.style.height = boardH + 'px';
   renderBoardBg(currentLevel);
   renderBoard();
   resetView();
@@ -1734,7 +1747,8 @@ let didPan = false;
 function zoomBounds() { return { min: fitScale * 0.85, max: fitScale * 3 }; }
 
 function applyView() {
-  gridEl.style.transform = 'translate(' + view.x.toFixed(1) + 'px,' + view.y.toFixed(1) + 'px) scale(' + view.scale.toFixed(4) + ')';
+  // transform the whole world (scenery + puzzle) so they pan/zoom as one place
+  worldEl.style.transform = 'translate(' + view.x.toFixed(1) + 'px,' + view.y.toFixed(1) + 'px) scale(' + view.scale.toFixed(4) + ')';
 }
 // fit the board to the viewport and centre it - this fully-zoomed-out state IS the
 // game's edge, so chains slide out exactly to the visible border (no phantom wall)

@@ -156,7 +156,8 @@
   .ad-slot span { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--sub); opacity: .6; }
   #screen-game { padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
   .board-wrap { flex: 1; display: flex; align-items: center; justify-content: center;
-    position: relative; overflow: hidden; touch-action: none; border-radius: 20px; }
+    position: relative; overflow: hidden; touch-action: none; border-radius: 20px;
+    background: #dfeecb; /* soft green - only shows if a seam ever peeks past the scene */ }
   /* #world holds the scene + the puzzle and takes the pan/zoom transform together,
      so the scenery is a fixed place the player pans/zooms over (Márk 2026-09-01) */
   #world { position: relative; transform-origin: 0 0; }
@@ -1519,6 +1520,77 @@ function cssVar(name) { return getComputedStyle(document.documentElement).getPro
 
 function vibrate(ms) { if (save.vibration && navigator.vibrate) navigator.vibrate(ms); }
 
+// ---- background music (Márk 2026-09-01) ----------------------------------
+// track1 = home/loading; tracks 2..N cycle one-per-level. Each track loops
+// seamlessly so a level left running never goes silent. Level changes cross-
+// fade (dissolve) between two <audio> elements so the switch feels continuous.
+// Gated by the Settings "Sounds" toggle (save.sound). Loudness-matched offline
+// (ffmpeg loudnorm) so no track reads louder than the others.
+const Music = (function () {
+  const TRACKS = ['music/track1.mp3', 'music/track2.mp3', 'music/track3.mp3'];
+  const HOME = 0;
+  const GAME = TRACKS.map((_, i) => i).filter(i => i !== HOME); // [1, 2, ...]
+  const VOL = 0.5, FADE_MS = 1400;
+  let a = null, b = null;        // two players; `a` is the live one
+  let curIdx = -1, unlocked = false, want = null; // want: 'home' | index
+  function mk() {
+    const el = new Audio();
+    el.loop = true; el.preload = 'auto'; el.volume = 0;
+    return el;
+  }
+  function ensure() { if (!a) { a = mk(); b = mk(); } }
+  function ramp(el, to, ms, done) {
+    const from = el.volume, t0 = performance.now();
+    (function step(now) {
+      const k = Math.min(1, (now - t0) / ms);
+      el.volume = Math.max(0, Math.min(1, from + (to - from) * k));
+      if (k < 1) requestAnimationFrame(step);
+      else if (done) done();
+    })(t0);
+  }
+  function play(idx) {
+    ensure();
+    want = idx;
+    if (!save.sound) { a.pause(); if (b) b.pause(); return; }
+    if (idx === curIdx && !a.paused) { ramp(a, VOL, 300); return; }
+    curIdx = idx;
+    // swap: b becomes the incoming live player
+    const incoming = b, outgoing = a;
+    incoming.src = TRACKS[idx];
+    incoming.currentTime = 0;
+    incoming.volume = 0;
+    const p = incoming.play();
+    if (p && p.catch) p.catch(() => {});
+    ramp(incoming, VOL, FADE_MS);
+    if (outgoing && !outgoing.paused) ramp(outgoing, 0, FADE_MS, () => outgoing.pause());
+    a = incoming; b = outgoing;
+  }
+  return {
+    home() { play(HOME); },
+    // the track for a given (0-based) level index - deterministic, cycles
+    forLevel(levelIndex) { play(GAME[((levelIndex % GAME.length) + GAME.length) % GAME.length]); },
+    setEnabled(on) {
+      ensure();
+      if (!on) { a.pause(); if (b) b.pause(); return; }
+      if (a.src && curIdx >= 0) {            // resume the current track where it left off
+        const p = a.play(); if (p && p.catch) p.catch(() => {});
+        ramp(a, VOL, 300);
+      } else if (want != null) {
+        curIdx = -1; play(want);
+      }
+    },
+    // call once from the first user gesture (autoplay unlock)
+    unlock() {
+      if (unlocked) return;
+      unlocked = true;
+      ensure();
+      if (want != null && save.sound) { curIdx = -1; play(want); }
+    },
+  };
+})();
+document.addEventListener('pointerdown', () => Music.unlock(), { once: true, capture: true });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) Music.setEnabled(!!save.sound); });
+
 function renderHearts() {
   heartsEl.innerHTML = '';
   for (let i = 0; i < 3; i++) {
@@ -1729,6 +1801,7 @@ function buildBoard() {
   worldEl.style.width = boardW + 'px';
   worldEl.style.height = boardH + 'px';
   renderBoardBg(currentLevel);
+  Music.forLevel(currentLevel);   // crossfades only when the level actually changes
   renderBoard();
   resetView();
   setStatus(t('tapHint'), '');
@@ -1746,7 +1819,23 @@ let didPan = false;
 
 function zoomBounds() { return { min: fitScale * 0.85, max: fitScale * 3 }; }
 
+// keep the scenery (#boardBg is 200% of the board, centred on it) covering the
+// whole frame so the player can never drag it out and expose an empty border
+function clampView() {
+  const bw = boardWrap.getBoundingClientRect();
+  if (!bw.width || !boardW) return;
+  const s = view.scale;
+  // #world is flex-centred in .board-wrap; its laid-out top-left sits at this offset
+  const offX = (bw.width - boardW) / 2, offY = (bw.height - boardH) / 2;
+  // #boardBg (200%, -50%) spans world-local [-0.5*boardW, 1.5*boardW]; keep it
+  // covering [0, bw.width] x [0, bw.height] after the transform
+  const xHi = -offX + 0.5 * boardW * s, xLo = bw.width - offX - 1.5 * boardW * s;
+  view.x = xLo <= xHi ? Math.min(xHi, Math.max(xLo, view.x)) : (xLo + xHi) / 2;
+  const yHi = -offY + 0.5 * boardH * s, yLo = bw.height - offY - 1.5 * boardH * s;
+  view.y = yLo <= yHi ? Math.min(yHi, Math.max(yLo, view.y)) : (yLo + yHi) / 2;
+}
 function applyView() {
+  clampView();
   // transform the whole world (scenery + puzzle) so they pan/zoom as one place
   worldEl.style.transform = 'translate(' + view.x.toFixed(1) + 'px,' + view.y.toFixed(1) + 'px) scale(' + view.scale.toFixed(4) + ')';
 }
@@ -2287,6 +2376,7 @@ function showScreen(name) {
   document.getElementById('screen-' + name).classList.add('active');
   if (name === 'home') renderHome();
   if (name === 'collection') renderCollection();
+  if (name !== 'game') Music.home();   // game track is chosen by buildBoard() per level
   try { BgSnakes.setActive(name !== 'game' && name !== 'settings'); } catch (e) {}
 }
 document.getElementById('openCollection').addEventListener('click', () => showScreen('collection'));
@@ -2573,7 +2663,7 @@ function wireToggle(id, key, onChange) {
   });
 }
 wireToggle('toggleVibration', 'vibration');
-wireToggle('toggleSound', 'sound');
+wireToggle('toggleSound', 'sound', on => Music.setEnabled(on));
 wireToggle('toggleDark', 'darkMode', on => {
   document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
 });

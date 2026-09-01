@@ -1183,6 +1183,7 @@ const CHAIN_KINDS = (window.MB_BUDDIES && window.MB_BUDDIES.length
   ? window.MB_BUDDIES
   : [{ name: 'rusty', color: '#F2762E' }]
 ).map(b => ({
+  name: b.name,
   img: BUDDY_DIR + b.name + '.png',
   color: b.color,
   dark: shade(b.color, 0.42),
@@ -1590,6 +1591,29 @@ const Music = (function () {
 })();
 document.addEventListener('pointerdown', () => Music.unlock(), { once: true, capture: true });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) Music.setEnabled(!!save.sound); });
+
+// ---- one-shot sound effects (Márk 2026-09-01) --------------------------
+// tap  = a soft "step in the grass" when a buddy is sent off
+// buddy(name) = that animal's little call, played as it slips out at the edge
+// (block/wrong-tap already triggers the toggleable vibration, no sound there)
+// All gated by the same "Sounds" toggle as the music.
+const Sfx = (function () {
+  const TAP = 'sfx/tap.mp3';
+  const pool = []; let pi = 0;
+  function grab() {
+    if (pool.length < 6) { const a = new Audio(); pool.push(a); return a; }
+    pi = (pi + 1) % pool.length; return pool[pi];
+  }
+  function play(src, vol) {
+    if (!save.sound) return;
+    const a = grab();
+    try { a.src = src; a.volume = vol; a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
+  return {
+    tap() { play(TAP, 0.45); },
+    buddy(name) { if (name) play('sfx/anim/' + name + '.mp3', 0.7); },
+  };
+})();
 
 function renderHearts() {
   heartsEl.innerHTML = '';
@@ -2004,6 +2028,7 @@ async function onTap(uid) {
   if (levelFailed) return;
   const chain = levelData.chains.find(c => c.uid === uid);
   if (!chain || animating.has(chain)) return; // gone, or already sliding
+  Sfx.tap(); // soft "step" the instant the buddy is sent off
 
   // pull it off the live board immediately so other buddies can be tapped in parallel
   const i = levelData.chains.indexOf(chain);
@@ -2164,6 +2189,7 @@ async function slideChainOut(chain) {
       if (!puffed && pastEdge(pos[n - 1]) > 0.15) {
         puffed = true;
         spawnExitPuff(head.r + d.dr * 0.6, head.c + d.dc * 0.6, chain.color);
+        Sfx.buddy((chain.img.split('/').pop() || '').replace('.png', '')); // this animal's call as it slips out
       }
       if (groupEl) {
         const fade = Math.max(0, Math.min(1, (pastEdge(pos[0]) - FADE_START) / FADE_SPAN));

@@ -215,15 +215,60 @@
       });
     });
   }
+  var APPLE_JS = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+  function appleInit() {
+    global.AppleID.auth.init({
+      clientId: cfg.appleServiceId, scope: 'name email', redirectURI: cfg.appleRedirectUri,
+      usePopup: true
+    });
+  }
   function webAppleIdToken() {
     if (!cfg.appleServiceId || !cfg.appleRedirectUri) return Promise.reject(new Error('apple_web_not_configured'));
-    return loadScript('https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js').then(function () {
-      global.AppleID.auth.init({
-        clientId: cfg.appleServiceId, scope: 'email', redirectURI: cfg.appleRedirectUri,
-        usePopup: true
-      });
+    return loadScript(APPLE_JS).then(function () {
+      appleInit();
       return global.AppleID.auth.signIn().then(function (r) {
         return (r && r.authorization && r.authorization.id_token) || null;
+      });
+    });
+  }
+
+  // Reliable web Apple sign-in: render Apple's official button into hostEl and
+  // resolve once the user completes the popup. Resolves to { isNew, save } like
+  // signInApple(). The rendered button (unlike a bare styled <button>) carries
+  // Apple's exact wordmark/geometry, matching renderGoogleButton().
+  function renderAppleButton(hostEl, opts) {
+    if (!cfg.appleServiceId || !cfg.appleRedirectUri) return Promise.reject(new Error('apple_web_not_configured'));
+    if (!hostEl) return Promise.reject(new Error('no_host_element'));
+    opts = opts || {};
+    return loadScript(APPLE_JS).then(function () {
+      return new Promise(function (resolve, reject) {
+        var done = false;
+        var onOk = function (e) {
+          if (done) return;
+          var tk = e && e.detail && e.detail.authorization && e.detail.authorization.id_token;
+          if (!tk) { finish(); return reject(new Error('no_apple_id_token')); }
+          postIdentity('apple', tk).then(function (r) { finish(); resolve(r); },
+            function (err) { finish(); reject(err); });
+        };
+        var onErr = function (e) {
+          if (done) return; finish();
+          reject(new Error((e && e.detail && e.detail.error) || 'apple_signin_failed'));
+        };
+        function finish() {
+          done = true;
+          document.removeEventListener('AppleIDSignInOnSuccess', onOk);
+          document.removeEventListener('AppleIDSignInOnFailure', onErr);
+        }
+        try {
+          appleInit();
+          hostEl.innerHTML = '<div id="appleid-signin" data-mode="center-align" data-type="sign in" ' +
+            'data-color="' + (opts.color || 'black') + '" data-border="true" data-border-radius="' +
+            (opts.radius != null ? opts.radius : 14) + '" data-width="' + (opts.width || 220) +
+            '" data-height="' + (opts.height || 44) + '"></div>';
+          document.addEventListener('AppleIDSignInOnSuccess', onOk);
+          document.addEventListener('AppleIDSignInOnFailure', onErr);
+          global.AppleID.auth.renderButton();
+        } catch (e) { finish(); reject(e); }
       });
     });
   }
@@ -303,6 +348,13 @@
      * -- there, keep using signInGoogle().
      */
     renderGoogleButton: function (hostEl, opts) { return renderGoogleButton(hostEl, opts); },
+
+    /**
+     * Reliable web Apple sign-in. Renders Apple's official button into hostEl;
+     * resolves to { isNew, save } once the user completes the popup, rejects on
+     * cancel/failure. On native, keep using signInApple().
+     */
+    renderAppleButton: function (hostEl, opts) { return renderAppleButton(hostEl, opts); },
 
     /** Drop the identity token and fall back to the anonymous device session. */
     signOut: function () {

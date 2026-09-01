@@ -473,6 +473,7 @@
       <div class="sheet-sub" data-i18n="signInSave">Sign in to save your level progress!</div>
       <button class="sheet-btn signin" id="signApple"><span class="si-ic"></span><span data-i18n="signApple">Sign in with Apple</span></button>
       <button class="sheet-btn signin" id="signGoogle"><span class="si-ic g"></span><span data-i18n="signGoogle">Sign in with Google</span></button>
+      <div id="gsiHost" style="display:none; justify-content:center; margin-bottom:8px"></div>
       <div class="sheet-fine" data-i18n="termsAgree">By signing up you agree to our Terms of Service</div>
       <button class="sheet-close" data-close data-i18n="close">Close</button>
     </div>
@@ -2193,7 +2194,28 @@ const sheetOverlay = document.getElementById('sheetOverlay');
 function openSheet(name) {
   sheetOverlay.querySelectorAll('.sheet-card').forEach(c => { c.hidden = c.dataset.sheet !== name; });
   if (name === 'language') renderLangList();
+  if (name === 'account') mountGoogleSignIn();
   sheetOverlay.hidden = false;
+}
+
+// On web, One Tap is unreliable -- swap the placeholder "Sign in with Google"
+// button for Google's own rendered button (real popup flow). Native keeps the
+// placeholder button, which routes to the Capacitor GoogleSignIn plugin.
+function mountGoogleSignIn() {
+  const host = document.getElementById('gsiHost');
+  const placeholder = document.getElementById('signGoogle');
+  if (!host || !NB || !NB.isConfigured() || NB.isNative()) return;
+  if (NB.signedInWith && NB.signedInWith()) return;
+  if (host.dataset.mounted) return;
+  host.dataset.mounted = '1';
+  placeholder.style.display = 'none';
+  host.style.display = 'flex';
+  NB.renderGoogleButton(host, { text: 'signin_with', shape: 'pill', size: 'large' })
+    .then(applySignIn)
+    .catch(function (err) {
+      const m = (err && err.message) || '';
+      if (!/no_credential|cancel/i.test(m)) toast('Sign-in unavailable');
+    });
 }
 function closeSheet() { sheetOverlay.hidden = true; }
 function renderLangList() {
@@ -2267,20 +2289,24 @@ function syncFromServer() {
   NB.ready().then(function () { return NB.loadSave(); }).then(adoptRemote).catch(function () {});
 }
 
+function applySignIn(res) {
+  adoptRemote(res.save);
+  setAccount(true);
+  closeSheet();
+  toast(res.isNew ? 'Signed in' : 'Progress restored');
+  pushSave();
+}
 function signIn(provider) {
   if (!NB) { toast('Sign-in unavailable'); return; }
   const btnId = provider === 'apple' ? 'signApple' : 'signGoogle';
   const btn = document.getElementById(btnId);
   btn.disabled = true;
-  (provider === 'apple' ? NB.signInApple() : NB.signInGoogle()).then(function (res) {
-    adoptRemote(res.save);
-    setAccount(true);
-    closeSheet();
-    toast(res.isNew ? 'Signed in' : 'Progress restored');
-    pushSave();
-  }).catch(function (err) {
-    toast(err && /cancel/i.test(err.message || '') ? 'Sign-in cancelled' : 'Sign-in unavailable');
-  }).then(function () { btn.disabled = false; });
+  (provider === 'apple' ? NB.signInApple() : NB.signInGoogle())
+    .then(applySignIn)
+    .catch(function (err) {
+      toast(err && /cancel/i.test(err.message || '') ? 'Sign-in cancelled' : 'Sign-in unavailable');
+    })
+    .then(function () { btn.disabled = false; });
 }
 document.getElementById('signApple').addEventListener('click', function () { signIn('apple'); });
 document.getElementById('signGoogle').addEventListener('click', function () { signIn('google'); });

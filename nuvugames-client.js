@@ -143,8 +143,49 @@
       .then(function (r) { return (r && r.response && r.response.identityToken) || null; });
   }
 
+  // One Tap (google.accounts.id.prompt) is unreliable as a primary web flow:
+  // under FedCM the moment API (isNotDisplayed/isSkippedMoment) is being removed,
+  // and the prompt often neither shows UI nor fires a moment -- the old code then
+  // hung forever. Keep it only as an opportunistic path, guarded so it always
+  // settles; the reliable web flow is renderGoogleButton() below.
   function webGoogleIdToken() {
     if (!cfg.googleWebClientId) return Promise.reject(new Error('google_web_client_id_missing'));
+    return loadScript('https://accounts.google.com/gsi/client').then(function () {
+      return new Promise(function (resolve, reject) {
+        var done = false;
+        var settle = function (fn, arg) { if (!done) { done = true; fn(arg); } };
+        try {
+          global.google.accounts.id.initialize({
+            client_id: cfg.googleWebClientId,
+            auto_select: false,
+            use_fedcm_for_prompt: true,
+            callback: function (resp) {
+              resp && resp.credential
+                ? settle(resolve, resp.credential)
+                : settle(reject, new Error('no_credential'));
+            }
+          });
+          global.google.accounts.id.prompt(function (notif) {
+            try {
+              if (notif.isNotDisplayed && (notif.isNotDisplayed() || notif.isSkippedMoment() || notif.isDismissedMoment())) {
+                settle(reject, new Error('google_prompt_unavailable'));
+              }
+            } catch (e) { /* FedCM removed these -- rely on the timeout below */ }
+          });
+          // Hard stop: never let a silent One Tap hang the sign-in button.
+          setTimeout(function () { settle(reject, new Error('google_prompt_unavailable')); }, 12000);
+        } catch (e) { settle(reject, e); }
+      });
+    });
+  }
+
+  // Reliable web Google sign-in: render Google's official button into hostEl and
+  // resolve once the user completes the popup. Resolves to { isNew, save } just
+  // like signInGoogle(). The caller shows hostEl inside its own sign-in UI.
+  function renderGoogleButton(hostEl, opts) {
+    if (!cfg.googleWebClientId) return Promise.reject(new Error('google_web_client_id_missing'));
+    if (!hostEl) return Promise.reject(new Error('no_host_element'));
+    opts = opts || {};
     return loadScript('https://accounts.google.com/gsi/client').then(function () {
       return new Promise(function (resolve, reject) {
         var done = false;
@@ -152,15 +193,23 @@
           global.google.accounts.id.initialize({
             client_id: cfg.googleWebClientId,
             auto_select: false,
+            use_fedcm_for_prompt: true,
             callback: function (resp) {
-              done = true;
-              resp && resp.credential ? resolve(resp.credential) : reject(new Error('no_credential'));
+              if (done) return;
+              if (!resp || !resp.credential) { done = true; return reject(new Error('no_credential')); }
+              postIdentity('google', resp.credential).then(function (r) {
+                done = true; resolve(r);
+              }, function (err) { done = true; reject(err); });
             }
           });
-          global.google.accounts.id.prompt(function (notif) {
-            if (!done && (notif.isNotDisplayed() || notif.isSkippedMoment() || notif.isDismissedMoment())) {
-              reject(new Error('google_prompt_unavailable'));
-            }
+          hostEl.innerHTML = '';
+          global.google.accounts.id.renderButton(hostEl, {
+            type: 'standard',
+            theme: opts.theme || 'outline',
+            size: opts.size || 'large',
+            text: opts.text || 'signin_with',
+            shape: opts.shape || 'pill',
+            width: opts.width || undefined
           });
         } catch (e) { reject(e); }
       });
@@ -242,6 +291,18 @@
      */
     signInApple: function () { return signIn('apple'); },
     signInGoogle: function () { return signIn('google'); },
+
+    /** true when running inside the Capacitor native shell (iOS/Android). */
+    isNative: function () { return isNative(); },
+
+    /**
+     * Reliable web Google sign-in. Renders Google's official button into hostEl;
+     * resolves to { isNew, save:{version,blob} } once the user completes the
+     * popup, rejects on cancel/failure. Use this on web instead of signInGoogle()
+     * (which relies on One Tap and can silently do nothing). No-op path on native
+     * -- there, keep using signInGoogle().
+     */
+    renderGoogleButton: function (hostEl, opts) { return renderGoogleButton(hostEl, opts); },
 
     /** Drop the identity token and fall back to the anonymous device session. */
     signOut: function () {

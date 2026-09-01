@@ -2206,30 +2206,40 @@ function mountWebSignIn() {
   if (!NB || !NB.isConfigured() || NB.isNative()) return;
   if (NB.signedInWith && NB.signedInWith()) return;
 
+  // The provider button takes ~1-3s to render (script load + iframe). Keep the
+  // styled placeholder visible until the real button is in the DOM, then swap,
+  // so the sheet is never momentarily button-less.
+  function swapWhenReady(host, placeholderId) {
+    let tries = 0;
+    const t = setInterval(function () {
+      tries++;
+      if (host.firstElementChild && host.firstElementChild.childNodes.length) {
+        document.getElementById(placeholderId).style.display = 'none';
+        host.style.display = 'flex';
+        clearInterval(t);
+      } else if (tries > 40) {           // ~8s: give up, leave the placeholder working
+        clearInterval(t);
+      }
+    }, 200);
+  }
+  const onCancel = /popup_closed|cancel|user_cancelled|no_credential|no_apple_id_token/i;
+
   const gHost = document.getElementById('gsiHost');
   if (gHost && !gHost.dataset.mounted) {
     gHost.dataset.mounted = '1';
-    document.getElementById('signGoogle').style.display = 'none';
-    gHost.style.display = 'flex';
     NB.renderGoogleButton(gHost, { text: 'signin_with', shape: 'pill', size: 'large' })
       .then(applySignIn)
-      .catch(function (err) {
-        const m = (err && err.message) || '';
-        if (!/no_credential|cancel/i.test(m)) toast('Sign-in unavailable');
-      });
+      .catch(function (err) { if (!onCancel.test((err && err.message) || '')) toast('Sign-in unavailable'); });
+    swapWhenReady(gHost, 'signGoogle');
   }
 
   const aHost = document.getElementById('appleHost');
   if (aHost && !aHost.dataset.mounted) {
     aHost.dataset.mounted = '1';
-    document.getElementById('signApple').style.display = 'none';
-    aHost.style.display = 'flex';
     NB.renderAppleButton(aHost, { color: 'black', width: 220, height: 44, radius: 14 })
       .then(applySignIn)
-      .catch(function (err) {
-        const m = (err && err.message) || '';
-        if (!/popup_closed|cancel|user_cancelled|no_apple_id_token/i.test(m)) toast('Sign-in unavailable');
-      });
+      .catch(function (err) { if (!onCancel.test((err && err.message) || '')) toast('Sign-in unavailable'); });
+    swapWhenReady(aHost, 'signApple');
   }
 }
 function closeSheet() { sheetOverlay.hidden = true; }

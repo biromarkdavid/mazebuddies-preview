@@ -2189,7 +2189,9 @@ async function slideChainOut(chain) {
       if (!puffed && pastEdge(pos[n - 1]) > 0.15) {
         puffed = true;
         spawnExitPuff(head.r + d.dr * 0.6, head.c + d.dc * 0.6, chain.color);
-        Sfx.buddy((chain.img.split('/').pop() || '').replace('.png', '')); // this animal's call as it slips out
+        // per-buddy exit call is parked until we have real animal sounds
+        // (synth placeholders rejected 2026-09-01 - see kanban "Maze Buddies animal sounds")
+        // Sfx.buddy((chain.img.split('/').pop() || '').replace('.png', ''));
       }
       if (groupEl) {
         const fade = Math.max(0, Math.min(1, (pastEdge(pos[0]) - FADE_START) / FADE_SPAN));

@@ -97,7 +97,10 @@
     justify-content: center;
     gap: 6px;
   }
-  .buddy-avatar { width: 132px; height: 132px; line-height: 1; margin-bottom: 2px; }
+  /* background-image (not <img>) so iOS Safari can't clip the character on the
+     right the way object-fit inside a flex column sometimes did (Márk 2026-09-01) */
+  .buddy-avatar { width: 150px; height: 150px; flex: none; margin-bottom: 2px;
+    background-repeat: no-repeat; background-position: center; background-size: contain; }
   .buddy-avatar img { width: 100%; height: 100%; object-fit: contain; }
   .ico { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; flex: none; }
   [data-ico] { display: inline-flex; line-height: 0; }
@@ -366,7 +369,7 @@
     <button class="corner-btn tr" id="openSettings" aria-label="Settings"><span data-ico="gear"></span></button>
     <div class="streak-chip"><span class="flameico" data-ico="flame"></span> <span id="streakNum">1</span></div>
     <div class="home-mid">
-      <div class="buddy-avatar" id="buddyAvatar"><img src="design/characters/buddies/rusty.png" alt=""></div>
+      <div class="buddy-avatar" id="buddyAvatar" style="background-image:url('design/characters/buddies/rusty.png')"></div>
       <div class="wordmark"><span class="tri" data-ico="tri"></span>Maze Buddies</div>
       <div class="level-line"><span data-i18n="level">Level</span> <span id="homeLevel">1</span></div>
       <div class="buddy-name" id="buddyName">Foxy</div>
@@ -1190,18 +1193,23 @@ const BgSnakes = (function () {
     cv.width = W * dpr; cv.height = H * dpr;
     cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
+  const N_SNAKES = 6;                         // Márk: always ~6 on screen, never overlapping
+  function minSep() { return Math.max(96, W * 0.27); }
   function make() {
     const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     snakes = [];
-    const n = 4 + Math.round(W / 220);
-    for (let i = 0; i < n; i++) {
+    const cols = 3, rows = 2, cw = W / cols, ch = H / rows;
+    for (let i = 0; i < N_SNAKES; i++) {
+      const gx = i % cols, gy = (i / cols) | 0;   // jittered grid so they start well apart
       const d = DIRS4[(Math.random() * 4) | 0];
       snakes.push({
-        x: Math.random() * W, y: Math.random() * H, dx: d[0], dy: d[1],
-        speed: 18 + Math.random() * 16,           // px/s
+        x: cw * (gx + 0.25 + Math.random() * 0.5),
+        y: ch * (gy + 0.25 + Math.random() * 0.5),
+        dx: d[0], dy: d[1],
+        speed: 15 + Math.random() * 11,           // px/s
         step: 34 + Math.random() * 10,             // spacing between body sprites
-        len: 4 + ((Math.random() * 4) | 0),
-        size: 30 + Math.random() * 14,
+        len: 4 + ((Math.random() * 3) | 0),
+        size: 30 + Math.random() * 12,
         img: (Math.random() * BUDDY_IMGS.length) | 0,
         trail: [], turnIn: 0.4 + Math.random(),
       });
@@ -1211,20 +1219,41 @@ const BgSnakes = (function () {
     if (!running) return;
     const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
     cx.clearRect(0, 0, W, H);
-    cx.globalAlpha = 0.07;
+    cx.globalAlpha = 0.09;
+    const SEP = minSep();
     for (const s of snakes) {
       s.turnIn -= dt;
       if (s.turnIn <= 0) {
-        s.turnIn = 1.2 + Math.random() * 2.6;
+        s.turnIn = 1.4 + Math.random() * 2.6;
         const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(o => !(o[0] === -s.dx && o[1] === -s.dy));
-        const nd = opts[(Math.random() * opts.length) | 0];
-        s.dx = nd[0]; s.dy = nd[1];
+        // if a neighbour is close, prefer the turn that opens the most distance
+        let near = null, nd = Infinity;
+        for (const o of snakes) { if (o === s) continue; const dd = Math.hypot(o.x - s.x, o.y - s.y); if (dd < nd) { nd = dd; near = o; } }
+        if (near && nd < SEP * 1.7) {
+          opts.sort((a, b) =>
+            Math.hypot(near.x - (s.x + b[0] * 40), near.y - (s.y + b[1] * 40)) -
+            Math.hypot(near.x - (s.x + a[0] * 40), near.y - (s.y + a[1] * 40)));
+          const nd2 = opts[Math.random() < 0.8 ? 0 : (Math.random() * opts.length) | 0];
+          s.dx = nd2[0]; s.dy = nd2[1];
+        } else {
+          const nd2 = opts[(Math.random() * opts.length) | 0];
+          s.dx = nd2[0]; s.dy = nd2[1];
+        }
       }
       s.x += s.dx * s.speed * dt;
       s.y += s.dy * s.speed * dt;
+      // soft repulsion: heads never get within SEP of each other
+      for (const o of snakes) {
+        if (o === s) continue;
+        const ax = s.x - o.x, ay = s.y - o.y, dd = Math.hypot(ax, ay) || 1;
+        if (dd < SEP) { const push = (SEP - dd) * dt * 3; s.x += (ax / dd) * push; s.y += (ay / dd) * push; }
+      }
+      // bounce off the edges so all six stay in view (no wrapping off-screen)
       const m = s.size;
-      if (s.x < -m) s.x = W + m; if (s.x > W + m) s.x = -m;
-      if (s.y < -m) s.y = H + m; if (s.y > H + m) s.y = -m;
+      if (s.x < m) { s.x = m; s.dx = 1; }
+      if (s.x > W - m) { s.x = W - m; s.dx = -1; }
+      if (s.y < m) { s.y = m; s.dy = 1; }
+      if (s.y > H - m) { s.y = H - m; s.dy = -1; }
       s.trail.unshift({ x: s.x, y: s.y });
       if (s.trail.length > s.len * s.step) s.trail.length = Math.ceil(s.len * s.step);
       const img = BUDDY_IMGS[s.img];
@@ -2258,7 +2287,7 @@ function renderHome() {
   streakNum.textContent = save.dayStreak || 0;
   homeLevel.textContent = save.level + 1;
   const b = featuredBuddy();
-  buddyAvatar.innerHTML = `<img src="design/characters/buddies/${b.name}.png" alt="">`;
+  buddyAvatar.style.backgroundImage = `url('design/characters/buddies/${b.name}.png')`;
   buddyNameEl.textContent = cap(b.name);
 }
 

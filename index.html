@@ -444,6 +444,10 @@
         <button class="toggle on" id="toggleSound"><span class="knob"></span></button>
       </div>
       <div class="settings-row">
+        <div class="left"><span class="icon" data-ico="music"></span><span data-i18n="music">Music</span></div>
+        <button class="toggle on" id="toggleMusic"><span class="knob"></span></button>
+      </div>
+      <div class="settings-row">
         <div class="left"><span class="icon" data-ico="moon"></span><span data-i18n="darkMode">Dark mode</span></div>
         <button class="toggle" id="toggleDark"><span class="knob"></span></button>
       </div>
@@ -606,6 +610,7 @@ const ICO = {
   globe: '<path fill="none" stroke="currentColor" stroke-width="2" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
   vib: '<rect x="8.5" y="4" width="7" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 9v6M20 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   sound: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  music: '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17V5l11-2v12"/><circle cx="6" cy="17" r="3"/><circle cx="17" cy="15" r="3"/></g>',
   moon: '<path d="M13.5 3A9 9 0 1 0 21 14 7 7 0 0 1 13.5 3z"/>',
   ban: '<path fill="none" stroke="currentColor" stroke-width="2" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM6 6l12 12"/>',
   star: '<path d="M12 3l2.7 5.4 6 .9-4.3 4.2 1 6-5.4-2.8L6.6 19.7l1-6L3.3 9.3l6-.9z"/>',
@@ -641,7 +646,7 @@ const I18N = {
     continueQ:'Continue?', levelFailed:'Level failed', reviveSub:'Watch a short ad to revive with an extra life.', noLives:'No lives left. Give this level another go.',
     watchRevive:'Watch ad & revive', restart:'Restart', level:'Level',
     navHome:'Home', navLevel:'Level', navCollection:'Collection', navSettings:'Settings',
-    settings:'Settings', language:'Language', vibrations:'Vibrations', sounds:'Sounds', darkMode:'Dark mode', accountConn:'Account Connection',
+    settings:'Settings', language:'Language', vibrations:'Vibrations', sounds:'Sounds', music:'Music', darkMode:'Dark mode', accountConn:'Account Connection',
     removeAds:'Remove Ads', restorePurch:'Restore purchases', rateUs:'Rate us', writeUs:'Write us', privacy:'Privacy', terms:'Terms of Service', on:'On', off:'Off', close:'Close',
     enjoying:'Enjoying Maze Buddies?', rateBody:'Take a moment to rate the game! Thank you for your support.', stars14:'1-4 Stars', stars5:'5 Stars',
     connectAcc:'Connect Account', signInSave:'Sign in to save your level progress!', signApple:'Sign in with Apple', signGoogle:'Sign in with Google',
@@ -652,7 +657,7 @@ const I18N = {
     continueQ:'Weiter?', levelFailed:'Level verloren', reviveSub:'Sieh dir eine kurze Werbung an, um mit einem Extra-Leben weiterzuspielen.', noLives:'Keine Leben mehr. Versuch dieses Level noch einmal.',
     watchRevive:'Werbung ansehen & wiederbeleben', restart:'Neustart', level:'Level',
     navHome:'Start', navLevel:'Level', navCollection:'Sammlung', navSettings:'Einstellungen',
-    settings:'Einstellungen', language:'Sprache', vibrations:'Vibration', sounds:'Ton', darkMode:'Dunkelmodus', accountConn:'Konto verbinden',
+    settings:'Einstellungen', language:'Sprache', vibrations:'Vibration', sounds:'Ton', music:'Musik', darkMode:'Dunkelmodus', accountConn:'Konto verbinden',
     removeAds:'Werbung entfernen', restorePurch:'Kaufe wiederherstellen', rateUs:'Bewerten', writeUs:'Schreib uns', privacy:'Datenschutz', terms:'Nutzungsbedingungen', on:'An', off:'Aus', close:'Schliessen',
     enjoying:'Gefallt dir Maze Buddies?', rateBody:'Nimm dir kurz Zeit, das Spiel zu bewerten. Danke fur deine Unterstutzung!', stars14:'1-4 Sterne', stars5:'5 Sterne',
     connectAcc:'Konto verbinden', signInSave:'Melde dich an, um deinen Fortschritt zu sichern!', signApple:'Mit Apple anmelden', signGoogle:'Mit Google anmelden',
@@ -663,7 +668,7 @@ const I18N = {
     continueQ:'Continuer ?', levelFailed:'Niveau echoue', reviveSub:'Regarde une courte pub pour revivre avec une vie en plus.', noLives:'Plus de vies. Retente ce niveau.',
     watchRevive:'Voir la pub & revivre', restart:'Recommencer', level:'Niveau',
     navHome:'Accueil', navLevel:'Niveau', navCollection:'Collection', navSettings:'Reglages',
-    settings:'Reglages', language:'Langue', vibrations:'Vibrations', sounds:'Sons', darkMode:'Mode sombre', accountConn:'Connexion du compte',
+    settings:'Reglages', language:'Langue', vibrations:'Vibrations', sounds:'Sons', music:'Musique', darkMode:'Mode sombre', accountConn:'Connexion du compte',
     removeAds:'Supprimer les pubs', restorePurch:'Restaurer les achats', rateUs:'Noter le jeu', writeUs:'Nous ecrire', privacy:'Confidentialite', terms:"Conditions d'utilisation", on:'Oui', off:'Non', close:'Fermer',
     enjoying:'Tu aimes Maze Buddies ?', rateBody:'Prends un instant pour noter le jeu. Merci de ton soutien !', stars14:'1-4 etoiles', stars5:'5 etoiles',
     connectAcc:'Connecter le compte', signInSave:'Connecte-toi pour sauvegarder ta progression !', signApple:'Se connecter avec Apple', signGoogle:'Se connecter avec Google',
@@ -674,7 +679,7 @@ const I18N = {
     continueQ:'Continuar?', levelFailed:'Nivel fallido', reviveSub:'Mira un anuncio corto para revivir con una vida extra.', noLives:'Sin vidas. Intenta este nivel otra vez.',
     watchRevive:'Ver anuncio y revivir', restart:'Reiniciar', level:'Nivel',
     navHome:'Inicio', navLevel:'Nivel', navCollection:'Coleccion', navSettings:'Ajustes',
-    settings:'Ajustes', language:'Idioma', vibrations:'Vibracion', sounds:'Sonidos', darkMode:'Modo oscuro', accountConn:'Conexion de cuenta',
+    settings:'Ajustes', language:'Idioma', vibrations:'Vibracion', sounds:'Sonidos', music:'Musica', darkMode:'Modo oscuro', accountConn:'Conexion de cuenta',
     removeAds:'Quitar anuncios', restorePurch:'Restaurar compras', rateUs:'Valoranos', writeUs:'Escribenos', privacy:'Privacidad', terms:'Terminos del servicio', on:'Si', off:'No', close:'Cerrar',
     enjoying:'Te gusta Maze Buddies?', rateBody:'Toma un momento para valorar el juego. Gracias por tu apoyo!', stars14:'1-4 estrellas', stars5:'5 estrellas',
     connectAcc:'Conectar cuenta', signInSave:'Inicia sesion para guardar tu progreso!', signApple:'Iniciar sesion con Apple', signGoogle:'Iniciar sesion con Google',
@@ -685,7 +690,7 @@ const I18N = {
     continueQ:'Continuare?', levelFailed:'Livello fallito', reviveSub:'Guarda un breve annuncio per rivivere con una vita extra.', noLives:'Vite finite. Riprova questo livello.',
     watchRevive:'Guarda annuncio e rivivi', restart:'Ricomincia', level:'Livello',
     navHome:'Home', navLevel:'Livello', navCollection:'Collezione', navSettings:'Impostazioni',
-    settings:'Impostazioni', language:'Lingua', vibrations:'Vibrazione', sounds:'Suoni', darkMode:'Modo scuro', accountConn:'Connessione account',
+    settings:'Impostazioni', language:'Lingua', vibrations:'Vibrazione', sounds:'Suoni', music:'Musica', darkMode:'Modo scuro', accountConn:'Connessione account',
     removeAds:'Rimuovi le pubblicita', restorePurch:'Ripristina acquisti', rateUs:'Valutaci', writeUs:'Scrivici', privacy:'Privacy', terms:'Termini di servizio', on:'Si', off:'No', close:'Chiudi',
     enjoying:'Ti piace Maze Buddies?', rateBody:'Prenditi un momento per valutare il gioco. Grazie del supporto!', stars14:'1-4 stelle', stars5:'5 stelle',
     connectAcc:'Connetti account', signInSave:'Accedi per salvare i tuoi progressi!', signApple:'Accedi con Apple', signGoogle:'Accedi con Google',
@@ -696,7 +701,7 @@ const I18N = {
     continueQ:'Continuar?', levelFailed:'Nivel falhado', reviveSub:'Ve um anuncio curto para reviver com uma vida extra.', noLives:'Sem vidas. Tenta este nivel de novo.',
     watchRevive:'Ver anuncio e reviver', restart:'Reiniciar', level:'Nivel',
     navHome:'Inicio', navLevel:'Nivel', navCollection:'Colecao', navSettings:'Definicoes',
-    settings:'Definicoes', language:'Idioma', vibrations:'Vibracao', sounds:'Sons', darkMode:'Modo escuro', accountConn:'Ligacao de conta',
+    settings:'Definicoes', language:'Idioma', vibrations:'Vibracao', sounds:'Sons', music:'Musica', darkMode:'Modo escuro', accountConn:'Ligacao de conta',
     removeAds:'Remover anuncios', restorePurch:'Restaurar compras', rateUs:'Avalia-nos', writeUs:'Escreve-nos', privacy:'Privacidade', terms:'Termos de servico', on:'Sim', off:'Nao', close:'Fechar',
     enjoying:'Estas a gostar de Maze Buddies?', rateBody:'Reserva um momento para avaliar o jogo. Obrigado pelo apoio!', stars14:'1-4 estrelas', stars5:'5 estrelas',
     connectAcc:'Ligar conta', signInSave:'Inicia sessao para guardar o teu progresso!', signApple:'Iniciar sessao com Apple', signGoogle:'Iniciar sessao com Google',
@@ -707,7 +712,7 @@ const I18N = {
     continueQ:'Doorgaan?', levelFailed:'Level mislukt', reviveSub:'Bekijk een korte advertentie om verder te spelen met een extra leven.', noLives:'Geen levens meer. Probeer dit level opnieuw.',
     watchRevive:'Advertentie bekijken & herleven', restart:'Herstarten', level:'Level',
     navHome:'Home', navLevel:'Level', navCollection:'Collectie', navSettings:'Instellingen',
-    settings:'Instellingen', language:'Taal', vibrations:'Trillingen', sounds:'Geluiden', darkMode:'Donkere modus', accountConn:'Accountkoppeling',
+    settings:'Instellingen', language:'Taal', vibrations:'Trillingen', sounds:'Geluiden', music:'Muziek', darkMode:'Donkere modus', accountConn:'Accountkoppeling',
     removeAds:'Advertenties verwijderen', restorePurch:'Aankopen herstellen', rateUs:'Beoordeel ons', writeUs:'Schrijf ons', privacy:'Privacy', terms:'Servicevoorwaarden', on:'Aan', off:'Uit', close:'Sluiten',
     enjoying:'Vind je Maze Buddies leuk?', rateBody:'Neem even de tijd om het spel te beoordelen. Bedankt voor je steun!', stars14:'1-4 sterren', stars5:'5 sterren',
     connectAcc:'Account koppelen', signInSave:'Log in om je voortgang op te slaan!', signApple:'Inloggen met Apple', signGoogle:'Inloggen met Google',
@@ -718,7 +723,7 @@ const I18N = {
     continueQ:'Kontynuowac?', levelFailed:'Poziom przegrany', reviveSub:'Obejrzyj krotka reklame, aby wrocic z dodatkowym zyciem.', noLives:'Brak zyc. Sprobuj ten poziom jeszcze raz.',
     watchRevive:'Obejrzyj reklame i wroc', restart:'Od nowa', level:'Poziom',
     navHome:'Glowna', navLevel:'Poziom', navCollection:'Kolekcja', navSettings:'Ustawienia',
-    settings:'Ustawienia', language:'Jezyk', vibrations:'Wibracje', sounds:'Dzwieki', darkMode:'Tryb ciemny', accountConn:'Polaczenie konta',
+    settings:'Ustawienia', language:'Jezyk', vibrations:'Wibracje', sounds:'Dzwieki', music:'Muzyka', darkMode:'Tryb ciemny', accountConn:'Polaczenie konta',
     removeAds:'Usun reklamy', restorePurch:'Przywroc zakupy', rateUs:'Ocen nas', writeUs:'Napisz do nas', privacy:'Prywatnosc', terms:'Warunki uslugi', on:'Wl', off:'Wyl', close:'Zamknij',
     enjoying:'Podoba Ci sie Maze Buddies?', rateBody:'Poswiec chwile na ocene gry. Dziekujemy za wsparcie!', stars14:'1-4 gwiazdki', stars5:'5 gwiazdek',
     connectAcc:'Polacz konto', signInSave:'Zaloguj sie, aby zapisac postep!', signApple:'Zaloguj przez Apple', signGoogle:'Zaloguj przez Google',
@@ -729,7 +734,7 @@ const I18N = {
     continueQ:'Devam?', levelFailed:'Bolum basarisiz', reviveSub:'Ekstra canla devam etmek icin kisa bir reklam izle.', noLives:'Can kalmadi. Bu bolumu tekrar dene.',
     watchRevive:'Reklam izle ve diril', restart:'Bastan', level:'Bolum',
     navHome:'Ana sayfa', navLevel:'Bolum', navCollection:'Koleksiyon', navSettings:'Ayarlar',
-    settings:'Ayarlar', language:'Dil', vibrations:'Titresim', sounds:'Sesler', darkMode:'Koyu mod', accountConn:'Hesap baglantisi',
+    settings:'Ayarlar', language:'Dil', vibrations:'Titresim', sounds:'Sesler', music:'Muzik', darkMode:'Koyu mod', accountConn:'Hesap baglantisi',
     removeAds:'Reklamlari kaldir', restorePurch:'Satin alimlari geri yukle', rateUs:'Bizi degerlendir', writeUs:'Bize yaz', privacy:'Gizlilik', terms:'Hizmet sartlari', on:'Acik', off:'Kapali', close:'Kapat',
     enjoying:'Maze Buddiesi seviyor musun?', rateBody:'Oyunu degerlendirmek icin biraz zaman ayir. Destegin icin tesekkurler!', stars14:'1-4 Yildiz', stars5:'5 Yildiz',
     connectAcc:'Hesabi bagla', signInSave:'Ilerlemeni kaydetmek icin giris yap!', signApple:'Apple ile giris yap', signGoogle:'Google ile giris yap',
@@ -740,7 +745,7 @@ const I18N = {
     continueQ:'Продолжить?', levelFailed:'Уровень проигран', reviveSub:'Посмотрите короткую рекламу, чтобы продолжить с доп. жизнью.', noLives:'Жизней нет. Попробуйте этот уровень снова.',
     watchRevive:'Смотреть рекламу и ожить', restart:'Заново', level:'Уровень',
     navHome:'Домой', navLevel:'Уровень', navCollection:'Коллекция', navSettings:'Настройки',
-    settings:'Настройки', language:'Язык', vibrations:'Вибрация', sounds:'Звуки', darkMode:'Тёмная тема', accountConn:'Подключение аккаунта',
+    settings:'Настройки', language:'Язык', vibrations:'Вибрация', sounds:'Звуки', music:'Музыка', darkMode:'Тёмная тема', accountConn:'Подключение аккаунта',
     removeAds:'Убрать рекламу', restorePurch:'Восстановить покупки', rateUs:'Оценить', writeUs:'Написать нам', privacy:'Конфиденциальность', terms:'Условия использования', on:'Вкл', off:'Выкл', close:'Закрыть',
     enjoying:'Нравится Maze Buddies?', rateBody:'Уделите минуту, чтобы оценить игру. Спасибо за поддержку!', stars14:'1-4 звезды', stars5:'5 звёзд',
     connectAcc:'Подключить аккаунт', signInSave:'Войдите, чтобы сохранить прогресс!', signApple:'Войти через Apple', signGoogle:'Войти через Google',
@@ -1452,7 +1457,8 @@ function loadSave() {
     rated: false,
     darkMode: false,
     vibration: true,
-    sound: true,
+    sound: true,   // sound effects (tap / pop / wrong)
+    music: true,   // background music - separate toggle (Márk 2026-09-02)
   };
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -1529,8 +1535,9 @@ function vibrate(ms) { if (save.vibration && navigator.vibrate) navigator.vibrat
 // track1 = home/loading; tracks 2..N cycle one-per-level. Each track loops
 // seamlessly so a level left running never goes silent. Level changes cross-
 // fade (dissolve) between two <audio> elements so the switch feels continuous.
-// Gated by the Settings "Sounds" toggle (save.sound). Loudness-matched offline
-// (ffmpeg loudnorm) so no track reads louder than the others.
+// Gated by the Settings "Music" toggle (save.music) - independent of the
+// "Sounds" (SFX) toggle. Loudness-matched offline (ffmpeg loudnorm) so no track
+// reads louder than the others.
 const Music = (function () {
   const TRACKS = ['music/track1.mp3', 'music/track2.mp3', 'music/track3.mp3'];
   const HOME = 0;
@@ -1556,7 +1563,7 @@ const Music = (function () {
   function play(idx) {
     ensure();
     want = idx;
-    if (!save.sound) { a.pause(); if (b) b.pause(); return; }
+    if (!save.music) { a.pause(); if (b) b.pause(); return; }
     if (idx === curIdx && !a.paused) { ramp(a, VOL, 300); return; }
     curIdx = idx;
     // swap: b becomes the incoming live player
@@ -1589,22 +1596,25 @@ const Music = (function () {
       if (unlocked) return;
       unlocked = true;
       ensure();
-      if (want != null && save.sound) { curIdx = -1; play(want); }
+      if (want != null && save.music) { curIdx = -1; play(want); }
     },
   };
 })();
 document.addEventListener('pointerdown', () => Music.unlock(), { once: true, capture: true });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) Music.setEnabled(!!save.sound); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) Music.setEnabled(!!save.music); });
 
 // ---- one-shot sound effects (Márk 2026-09-01) --------------------------
-// tap = a soft "step in the grass" when a buddy is sent off
-// pop = a small MergeShot-style "pop" as the buddy slips out at the edge
-//       (Márk 2026-09-02: animal calls scrapped, reuse the MergeShot pop)
-// (block/wrong-tap already triggers the toggleable vibration, no sound there)
-// All gated by the same "Sounds" toggle as the music.
+// tap   = a soft "step in the grass" when a buddy is sent off
+// pop   = a small MergeShot-style "pop" as the buddy slips out at the edge
+//         (Márk 2026-09-02: animal calls scrapped, reuse the MergeShot pop)
+// wrong = a soft two-note "nope" when a buddy is tapped into a wall
+//         (Márk 2026-09-02; also fires the toggleable vibration)
+// All gated by the Settings "Sounds" toggle (save.sound) - SFX only; music has
+// its own separate "Music" toggle (save.music).
 const Sfx = (function () {
   const TAP = 'sfx/tap.mp3';
   const POP = 'sfx/pop.mp3';
+  const WRONG = 'sfx/wrong.mp3';
   const pool = []; let pi = 0;
   function grab() {
     if (pool.length < 6) { const a = new Audio(); pool.push(a); return a; }
@@ -1618,6 +1628,7 @@ const Sfx = (function () {
   return {
     tap() { play(TAP, 0.45); },
     pop() { play(POP, 0.5); },
+    wrong() { play(WRONG, 0.5); },
   };
 })();
 
@@ -2066,6 +2077,7 @@ async function onTap(uid) {
 
   if (blocked) {
     vibrate(40);
+    Sfx.wrong(); // soft "nope" - buddy tapped into a wall
     await slideChainBlocked(chain); // snake out to the wall and back
     animating.delete(chain);
     levelData.chains.push(chain);
@@ -2747,7 +2759,8 @@ function wireToggle(id, key, onChange) {
   });
 }
 wireToggle('toggleVibration', 'vibration');
-wireToggle('toggleSound', 'sound', on => Music.setEnabled(on));
+wireToggle('toggleSound', 'sound');
+wireToggle('toggleMusic', 'music', on => Music.setEnabled(on));
 wireToggle('toggleDark', 'darkMode', on => {
   document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
 });

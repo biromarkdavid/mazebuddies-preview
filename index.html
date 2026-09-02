@@ -78,6 +78,18 @@
   .rate-cta .star { color: #ffd23f; font-size: 20px; }
   .rate-cta:active { transform: scale(0.98); }
 
+  /* async-button loading state (sign-in, rate) - Márk 2026-09-02: the popup can
+     take a moment, show that something is happening */
+  .btn-busy { position: relative; pointer-events: none; }
+  .btn-busy > * { visibility: hidden; }
+  .btn-busy::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 18px; height: 18px; margin: -9px 0 0 -9px;
+    border: 2.5px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: btnspin 0.7s linear infinite;
+  }
+  @keyframes btnspin { to { transform: rotate(360deg); } }
+
   /* ---- Home ---- */
   .streak-chip {
     align-self: center;
@@ -446,10 +458,6 @@
       <div class="settings-row">
         <div class="left"><span class="icon" data-ico="music"></span><span data-i18n="music">Music</span></div>
         <button class="toggle on" id="toggleMusic"><span class="knob"></span></button>
-      </div>
-      <div class="settings-row">
-        <div class="left"><span class="icon" data-ico="moon"></span><span data-i18n="darkMode">Dark mode</span></div>
-        <button class="toggle" id="toggleDark"><span class="knob"></span></button>
       </div>
     </div>
     <div class="settings-group">
@@ -1455,7 +1463,6 @@ function loadSave() {
     account: false,
     noAds: false,
     rated: false,
-    darkMode: false,
     vibration: true,
     sound: true,   // sound effects (tap / pop / wrong)
     music: true,   // background music - separate toggle (Márk 2026-09-02)
@@ -2662,7 +2669,22 @@ sheetOverlay.addEventListener('click', (e) => {
 });
 document.querySelectorAll('.settings-row[data-modal]').forEach(row =>
   row.addEventListener('click', () => openSheet(row.dataset.modal)));
-document.getElementById('rateHigh').addEventListener('click', () => { save.rated = true; persist(); closeSheet(); });
+// the Rate CTA is a button and its sheet/store hop can lag - show a spinner on it
+document.querySelector('.rate-cta[data-modal]').addEventListener('click', (e) => {
+  const btn = e.currentTarget;
+  btnBusy(btn, true);
+  requestAnimationFrame(() => { openSheet(btn.dataset.modal); btnBusy(btn, false); });
+});
+const APP_STORE_REVIEW = 'https://apps.apple.com/app/id6806324598?action=write-review';
+document.getElementById('rateHigh').addEventListener('click', (e) => {
+  save.rated = true; persist();
+  btnBusy(e.currentTarget, true);
+  try {
+    const w = window.open(APP_STORE_REVIEW, '_blank');
+    if (!w) window.location.href = APP_STORE_REVIEW;
+  } catch (err) { window.location.href = APP_STORE_REVIEW; }
+  setTimeout(() => { btnBusy(e.currentTarget, false); closeSheet(); }, 800);
+});
 document.getElementById('rateLow').addEventListener('click', closeSheet);
 document.getElementById('raBuy').addEventListener('click', () => { save.noAds = true; persist(); closeSheet(); });
 const restoreRow = document.getElementById('restoreRow');
@@ -2724,17 +2746,23 @@ function applySignIn(res) {
   toast(res.isNew ? 'Signed in' : 'Progress restored');
   pushSave();
 }
+// toggle a button into a spinner + inert state while an async action runs
+function btnBusy(el, on) {
+  if (!el) return;
+  el.classList.toggle('btn-busy', !!on);
+  el.disabled = !!on;
+}
 function signIn(provider) {
   if (!NB) { toast('Sign-in unavailable'); return; }
   const btnId = provider === 'apple' ? 'signApple' : 'signGoogle';
   const btn = document.getElementById(btnId);
-  btn.disabled = true;
+  btnBusy(btn, true);
   (provider === 'apple' ? NB.signInApple() : NB.signInGoogle())
     .then(applySignIn)
     .catch(function (err) {
       toast(err && /cancel/i.test(err.message || '') ? 'Sign-in cancelled' : 'Sign-in unavailable');
     })
-    .then(function () { btn.disabled = false; });
+    .then(function () { btnBusy(btn, false); });
 }
 document.getElementById('signApple').addEventListener('click', function () { signIn('apple'); });
 document.getElementById('signGoogle').addEventListener('click', function () { signIn('google'); });
@@ -2770,10 +2798,9 @@ function wireToggle(id, key, onChange) {
 wireToggle('toggleVibration', 'vibration');
 wireToggle('toggleSound', 'sound');
 wireToggle('toggleMusic', 'music', on => Music.setEnabled(on));
-wireToggle('toggleDark', 'darkMode', on => {
-  document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
-});
-if (save.darkMode) document.documentElement.setAttribute('data-theme', 'dark');
+// Dark mode toggle removed (Márk 2026-09-02) - the art is designed light, so
+// pin the light theme and don't follow the system into dark.
+document.documentElement.setAttribute('data-theme', 'light');
 
 // ---- boot ----
 paintIcons();

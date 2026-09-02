@@ -1604,15 +1604,13 @@ document.addEventListener('pointerdown', () => Music.unlock(), { once: true, cap
 document.addEventListener('visibilitychange', () => { if (!document.hidden) Music.setEnabled(!!save.music); });
 
 // ---- one-shot sound effects (Márk 2026-09-01) --------------------------
-// tap   = a soft "step in the grass" when a buddy is sent off
-// pop   = a small MergeShot-style "pop" as the buddy slips out at the edge
-//         (Márk 2026-09-02: animal calls scrapped, reuse the MergeShot pop)
+// pop   = a small MergeShot-style "pop" the instant a valid buddy is tapped off
+//         (Márk 2026-09-02: this is the only tap sound - forest footstep cut)
 // wrong = a soft two-note "nope" when a buddy is tapped into a wall
 //         (Márk 2026-09-02; also fires the toggleable vibration)
 // All gated by the Settings "Sounds" toggle (save.sound) - SFX only; music has
 // its own separate "Music" toggle (save.music).
 const Sfx = (function () {
-  const TAP = 'sfx/tap.mp3';
   const POP = 'sfx/pop.mp3';
   const WRONG = 'sfx/wrong.mp3';
   const pool = []; let pi = 0;
@@ -1626,7 +1624,6 @@ const Sfx = (function () {
     try { a.src = src; a.volume = vol; a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
   }
   return {
-    tap() { play(TAP, 0.45); },
     pop() { play(POP, 0.5); },
     wrong() { play(WRONG, 0.5); },
   };
@@ -2062,7 +2059,6 @@ async function onTap(uid) {
   if (levelFailed) return;
   const chain = levelData.chains.find(c => c.uid === uid);
   if (!chain || animating.has(chain)) return; // gone, or already sliding
-  Sfx.tap(); // soft "step" the instant the buddy is sent off
 
   // pull it off the live board immediately so other buddies can be tapped in parallel
   const i = levelData.chains.indexOf(chain);
@@ -2089,6 +2085,7 @@ async function onTap(uid) {
 
   moves++;
   vibrate(20);
+  Sfx.pop(); // little pop the instant a valid buddy is sent off
   await slideChainOut(chain); // removes its own <g> when finished
   animating.delete(chain);
 
@@ -2225,7 +2222,6 @@ async function slideChainOut(chain) {
       if (!puffed && pastEdge(pos[n - 1]) > 0.15) {
         puffed = true;
         spawnExitPuff(head.r + d.dr * 0.6, head.c + d.dc * 0.6, chain.color);
-        Sfx.pop(); // little MergeShot-style pop as the buddy clears the edge
       }
       const fade = Math.max(0, Math.min(1, (pastEdge(pos[0]) - FADE_START) / FADE_SPAN));
       setFade(1 - fade);

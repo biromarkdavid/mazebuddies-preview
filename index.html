@@ -1529,7 +1529,20 @@ const buddyNameEl = document.getElementById('buddyName');
 function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
-function vibrate(ms) { if (save.vibration && navigator.vibrate) navigator.vibrate(ms); }
+// Haptics: iOS Safari has no Vibration API, so on the web (incl. the iPhone
+// preview) this is a no-op. In the Capacitor build it routes to @capacitor/haptics.
+function vibrate(ms) {
+  if (!save.vibration) return;
+  try {
+    const cap = window.Capacitor;
+    if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.Haptics) {
+      const H = cap.Plugins.Haptics;
+      if (ms >= 35) H.impact({ style: 'MEDIUM' }); else H.impact({ style: 'LIGHT' });
+      return;
+    }
+  } catch (e) {}
+  if (navigator.vibrate) navigator.vibrate(ms);
+}
 
 // ---- background music (Márk 2026-09-01) ----------------------------------
 // track1 = home/loading; tracks 2..N cycle one-per-level. Each track loops
@@ -1625,7 +1638,7 @@ const Sfx = (function () {
   }
   return {
     pop() { play(POP, 0.5); },
-    wrong() { play(WRONG, 0.5); },
+    wrong() { play(WRONG, 0.9); },
   };
 })();
 
